@@ -42,7 +42,7 @@ The app will be deployed on a Google Cloud VM. The backend, frontend, and databa
 
 The main entities within the system are User, Session, SessionUser, Playlist, and PlaylistTrack. A User can participate in many Sessions and a Session can contain many Users through the SessionUser relationship. A User can own many Playlists. Each Playlist contains many PlaylistTracks. PlaylistTracks stores metadata including artist name, song name, release date, and song length.
 
-![JamSync ER Diagram](docs/er-diagram.png)
+![JamSync ER Diagram](er-diagram.png)
 
 ---
 
