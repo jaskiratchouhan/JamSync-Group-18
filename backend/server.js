@@ -264,7 +264,16 @@ function leaveRoom(socket, roomId, userId) {
     room.hostId = room.users[0]?.id || null;
 
     room.users.forEach((u) => {
-      u.isHost = u.id === room.hostId;
+        u.isHost = u.id === room.hostId;
+
+        if (u.isHost) {
+        u.isForceMuted = false;
+
+        io.to(u.socketId).emit("voice:force-muted", {
+            targetUserId: u.id,
+            muted: false
+        });
+        }
     });
   }
 

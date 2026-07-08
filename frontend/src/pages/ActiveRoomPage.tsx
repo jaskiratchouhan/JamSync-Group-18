@@ -408,7 +408,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
         <div>
           <h1>JamSync Room</h1>
 
-          <p>🟢 {room.users.length} Users Connected</p>
+          <p>{room.users.length} Users Connected</p>
 
           <div
             style={{
@@ -535,7 +535,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             }}
           >
             <div style={{ fontWeight: "bold", fontSize: "16px" }}>
-              🎵 Music Controller
+              Music Controller
             </div>
 
             <div>{hostUser?.name}</div>
