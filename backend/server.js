@@ -8,6 +8,10 @@ import { Server } from "socket.io";
 import dotenv from 'dotenv';
 dotenv.config();
 
+(async () => {
+    await helpers.init();
+})();
+
 const app = express();
 app.use(cors());
 
@@ -346,6 +350,16 @@ app.get('/auth/spotify/callback', async function(req, res) {
   try {
     const tokenResponse = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers})
     console.log('Tokens:', tokenResponse.data)
+    const {access_token, refresh_token, expires_in} = tokenResponse.data;
+    const profileInfo = await axios.get("https://api.spotify.com/v1/me", {headers: {Authorization: `Bearer ${access_token}`}})
+
+    const {account_id, email, display_name, images} = profileInfo.data;
+
+    const avatar_url = images[0]?.url || null;
+    const token_expires_at = new Date(Date.now() + expires_in * 1000);
+
+    const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
+    console.log('saved user:', user);
     const frontPageUrl = frontEndUrl + "/homepage"
     res.redirect(frontPageUrl);
   }
