@@ -22,7 +22,13 @@ function getRoom(roomId) {
     rooms[roomId] = {
       id: roomId,
       hostId: null,
-      users: []
+      users: [],
+      music: {
+        title: "Default JamSync Song",
+        artist: "Prototype Artist",
+        playing: false,
+        currentTime: 0
+      }
     };
   }
 
@@ -33,7 +39,11 @@ function makeRoomUser(user, socket, isHost) {
   return {
     ...user,
     socketId: socket.id,
-    isHost
+    isHost,
+    isSelfMuted: false,
+    isForceMuted: false,
+    speaking: false,
+    transcript: ""
   };
 }
 
@@ -42,30 +52,26 @@ io.on("connection", (socket) => {
 
   socket.on("room:create", ({ user }) => {
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
-
     const room = getRoom(roomId);
 
     room.hostId = user.id;
 
+    // prevents duplicate users from React dev reload / StrictMode
     room.users = room.users.filter((u) => u.id !== user.id);
 
     const newUser = makeRoomUser(user, socket, true);
 
     room.users.push(newUser);
-
     socket.join(roomId);
 
-    socket.emit("room:created", {
-      roomId,
-      room
-    });
-
+    socket.emit("room:created", { roomId, room });
     io.to(roomId).emit("room:update", room);
   });
 
   socket.on("room:join", ({ roomId, user }) => {
     const room = getRoom(roomId);
 
+    // prevents the same tab/user from appearing twice
     room.users = room.users.filter((u) => u.id !== user.id);
 
     const newUser = makeRoomUser(
@@ -75,19 +81,153 @@ io.on("connection", (socket) => {
     );
 
     room.users.push(newUser);
-
     socket.join(roomId);
 
-    socket.emit("room:joined", {
-      roomId,
-      room
+    socket.emit("room:joined", { roomId, room });
+
+    socket.to(roomId).emit("webrtc:user-joined", {
+      userId: user.id,
+      socketId: socket.id
     });
 
     io.to(roomId).emit("room:update", room);
   });
 
-  socket.on("room:leave", ({ roomId, userId }) => {
+  socket.on("room:leave", ({ roomId, userId }, callback) => {
     leaveRoom(socket, roomId, userId);
+
+    if (callback) {
+      callback({ ok: true });
+    }
+  });
+
+  socket.on("voice:self-muted", ({ roomId, userId, muted }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const user = room.users.find((u) => u.id === userId);
+    if (!user) return;
+
+    user.isSelfMuted = muted;
+    io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("voice:force-muted", ({ roomId, targetUserId, requesterId, muted }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (room.hostId !== requesterId) return;
+
+    const target = room.users.find((u) => u.id === targetUserId);
+    if (!target) return;
+
+    target.isForceMuted = muted;
+
+    io.to(roomId).emit("voice:force-muted", {
+      targetUserId,
+      muted
+    });
+
+    io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("voice:speaking", ({ roomId, userId, speaking }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const user = room.users.find((u) => u.id === userId);
+    if (!user) return;
+
+    user.speaking = speaking;
+    io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("voice:transcript", ({ roomId, userId, transcript }) => {
+    const room = rooms[roomId];
+    if (!room || !transcript?.trim()) return;
+
+    const user = room.users.find((u) => u.id === userId);
+    if (!user) return;
+
+    const cleanTranscript = transcript.trim();
+
+    if (user.transcript === cleanTranscript) return;
+
+    user.transcript = cleanTranscript;
+    user.lastTranscriptAt = 0;
+
+    io.to(roomId).emit("room:update", room);
+
+    const thisTranscriptTime = user.lastTranscriptAt;
+
+    setTimeout(() => {
+      const latestRoom = rooms[roomId];
+      if (!latestRoom) return;
+
+      const latestUser = latestRoom.users.find((u) => u.id === userId);
+      if (!latestUser) return;
+
+      if (latestUser.lastTranscriptAt !== thisTranscriptTime) return;
+
+      latestUser.transcript = "";
+      io.to(roomId).emit("room:update", latestRoom);
+    }, 2500);
+  });
+
+  socket.on("music:action", ({ roomId, requesterId, action }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (room.hostId !== requesterId) return;
+
+    if (action === "play") {
+      room.music.playing = true;
+    }
+
+    if (action === "pause") {
+      room.music.playing = false;
+    }
+
+    if (action === "skip") {
+      room.music = {
+        title: "Next Default Song",
+        artist: "JamSync Bot",
+        playing: true,
+        currentTime: 0
+      };
+    }
+
+    if (action === "back") {
+      room.music = {
+        title: "Previous Default Song",
+        artist: "JamSync Bot",
+        playing: true,
+        currentTime: 0
+      };
+    }
+
+    io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("webrtc:offer", ({ targetSocketId, offer, fromSocketId }) => {
+    io.to(targetSocketId).emit("webrtc:offer", {
+      offer,
+      fromSocketId
+    });
+  });
+
+  socket.on("webrtc:answer", ({ targetSocketId, answer, fromSocketId }) => {
+    io.to(targetSocketId).emit("webrtc:answer", {
+      answer,
+      fromSocketId
+    });
+  });
+
+  socket.on("webrtc:ice-candidate", ({ targetSocketId, candidate, fromSocketId }) => {
+    io.to(targetSocketId).emit("webrtc:ice-candidate", {
+      candidate,
+      fromSocketId
+    });
   });
 
   socket.on("disconnect", () => {
@@ -95,10 +235,7 @@ io.on("connection", (socket) => {
 
     for (const roomId in rooms) {
       const room = rooms[roomId];
-
-      const leavingUser = room.users.find(
-        (u) => u.socketId === socket.id
-      );
+      const leavingUser = room.users.find((u) => u.socketId === socket.id);
 
       if (leavingUser) {
         leaveRoom(socket, roomId, leavingUser.id);
@@ -111,9 +248,17 @@ function leaveRoom(socket, roomId, userId) {
   const room = rooms[roomId];
   if (!room) return;
 
+  const leavingUser = room.users.find((u) => u.id === userId);
   room.users = room.users.filter((u) => u.id !== userId);
 
   socket.leave(roomId);
+
+  if (leavingUser) {
+    socket.to(roomId).emit("webrtc:user-left", {
+      socketId: leavingUser.socketId,
+      userId
+    });
+  }
 
   if (room.hostId === userId) {
     room.hostId = room.users[0]?.id || null;
