@@ -297,7 +297,7 @@ const client_id = process.env.CLIENT_ID;
 
 const client_secret = process.env.CLIENT_SECRET;
 
-
+const frontEndUrl = process.env.FRONTEND_URL;
 var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 
 app.get('/auth/spotify', function(req, res) {
@@ -346,7 +346,8 @@ app.get('/auth/spotify/callback', async function(req, res) {
   try {
     const tokenResponse = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers})
     console.log('Tokens:', tokenResponse.data)
-    res.send("Success!");
+    const frontPageUrl = frontEndUrl + "/homepage"
+    res.redirect(frontPageUrl);
   }
   catch(err) {
     console.error(err);
