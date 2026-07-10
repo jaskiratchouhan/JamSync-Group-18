@@ -1,7 +1,16 @@
 import express from "express";
+import axios from 'axios';
+import {helpers} from './db.js';
+import querystring from 'querystring'
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
+import dotenv from 'dotenv';
+dotenv.config();
+
+(async () => {
+    await helpers.init();
+})();
 
 const app = express();
 app.use(cors());
@@ -284,6 +293,82 @@ function leaveRoom(socket, roomId, userId) {
 
   io.to(roomId).emit("room:update", room);
 }
+
+// auth
+
+
+const client_id = process.env.CLIENT_ID;
+
+const client_secret = process.env.CLIENT_SECRET;
+
+const frontEndUrl = process.env.FRONTEND_URL;
+var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
+
+app.get('/auth/spotify', function(req, res) {
+
+  var state = helpers.generateRandomString(16);
+  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify';
+
+  res.redirect('https://accounts.spotify.com/authorize?' +
+    querystring.stringify({
+      response_type: 'code',
+      client_id: client_id,
+      scope: scope,
+      redirect_uri: redirect_uri,
+      state: state,
+      show_dialog: true,
+    }));
+});
+
+
+app.get('/auth/spotify/callback', async function(req, res) {
+
+  var code = req.query.code || null;
+  var state = req.query.state || null;
+
+  if (state === null) {
+    res.redirect('/#' +
+      querystring.stringify({
+        error: 'state_mismatch'
+      }));
+  } else {
+    var authOptions = {
+      url: 'https://accounts.spotify.com/api/token',
+      form: {
+        code: code,
+        redirect_uri: redirect_uri,
+        grant_type: 'authorization_code'
+      },
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + (new Buffer.from(client_id + ':' + client_secret).toString('base64'))
+      },
+      json: true
+    };
+  }
+
+  try {
+    const tokenResponse = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers})
+    console.log('Tokens:', tokenResponse.data)
+    const {access_token, refresh_token, expires_in} = tokenResponse.data;
+    const profileInfo = await axios.get("https://api.spotify.com/v1/me", {headers: {Authorization: `Bearer ${access_token}`}})
+
+    const {account_id, email, display_name, images} = profileInfo.data;
+
+    const avatar_url = images[0]?.url || null;
+    const token_expires_at = new Date(Date.now() + expires_in * 1000);
+
+    const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
+    console.log('saved user:', user);
+    const frontPageUrl = frontEndUrl + "/homepage"
+    res.redirect(frontPageUrl);
+  }
+  catch(err) {
+    console.error(err);
+    res.status(500).send("Token exchange failed")
+  }
+});
+
 
 server.listen(3001, () => {
   console.log("Backend running on http://localhost:3001");
