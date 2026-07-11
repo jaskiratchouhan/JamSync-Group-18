@@ -195,3 +195,22 @@ button:disabled {
 .room-page h3 {
   color: black;
 }
+
+.home-page h1,
+.home-page h2 {
+  color: black;
+}
+
+.playlists {
+  color: black;
+  text-align: center;
+}
+
+.playlists ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
