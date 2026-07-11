@@ -360,7 +360,7 @@ app.get('/auth/spotify/callback', async function(req, res) {
 
     const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
-    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage"
+    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
   catch(err) {
@@ -448,17 +448,27 @@ app.get('/api/playlists', async function(req, res) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (user.platform !== 'youtube') {
-      return res.status(400).json({ error: 'Unsupported platform' });
+    if (user.platform === 'spotify') {
+      const response = await axios.get('https://api.spotify.com/v1/me/playlists', {
+        params: { limit: 50 },
+        headers: { Authorization: `Bearer ${user.access_token}` }
+      });
+
+      const playlists = response.data.items.map((item) => ({ id: item.id, name: item.name }));
+      return res.json({ platform: 'spotify', playlists });
     }
 
-    const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
-      params: { part: 'snippet', mine: true, maxResults: 50 },
-      headers: { Authorization: `Bearer ${user.access_token}` }
-    });
+    if (user.platform === 'youtube') {
+      const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
+        params: { part: 'snippet', mine: true, maxResults: 50 },
+        headers: { Authorization: `Bearer ${user.access_token}` }
+      });
 
-    const playlists = response.data.items.map((item) => ({ id: item.id, name: item.snippet.title }));
-    return res.json({ platform: 'youtube', playlists });
+      const playlists = response.data.items.map((item) => ({ id: item.id, name: item.snippet.title }));
+      return res.json({ platform: 'youtube', playlists });
+    }
+
+    return res.status(400).json({ error: 'Unsupported platform' });
   } catch (err) {
     const detail = err.response?.data || err.message;
     console.error('Playlists error:', detail);
