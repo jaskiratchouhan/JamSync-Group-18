@@ -9,44 +9,44 @@ const client_id = process.env.CLIENT_ID;
 const pool= new Pool({connectionString: `postgresql://${user}:${psw}@localhost:5432/${db}`});
 
 const helpers = {
-     init: async()=> {
-        const q = `CREATE TABLE IF NOT EXISTS users(
-        id SERIAL PRIMARY KEY,
-        platform VARCHAR,
-        email VARCHAR,
-        platform_id VARCHAR,
-        display_name VARCHAR, 
-        avatar_url VARCHAR,
-        access_token VARCHAR,
-        refresh_token VARCHAR,
-        created_at TIMESTAMP DEFAULT NOW(),
-        token_expires_at TIMESTAMP,
-        CONSTRAINT uniquePlatFormAccount UNIQUE(platform, platform_id)
-        );
-        `;
-        const q1= `CREATE TABLE IF NOT EXISTS sessions(
-        id SERIAL PRIMARY KEY,
-        room_code VARCHAR UNIQUE NOT NULL,
-        host_user_id INTEGER REFERENCES users(id),
-        name VARCHAR,
-        is_public BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT NOW()
-        );
-        `;
-        const q2 = `CREATE TABLE IF NOT EXISTS session_members(
-        id SERIAL PRIMARY KEY,
-        session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
-        user_id INTEGER REFERENCES users(id),
-        joined_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(session_id, user_id)
-        );
-        `;
+    //  init: async()=> {
+    //     const q = `CREATE TABLE IF NOT EXISTS users(
+    //     id SERIAL PRIMARY KEY,
+    //     platform VARCHAR,
+    //     email VARCHAR,
+    //     platform_id VARCHAR,
+    //     display_name VARCHAR, 
+    //     avatar_url VARCHAR,
+    //     access_token VARCHAR,
+    //     refresh_token VARCHAR,
+    //     created_at TIMESTAMP DEFAULT NOW(),
+    //     token_expires_at TIMESTAMP,
+    //     CONSTRAINT uniquePlatFormAccount UNIQUE(platform, platform_id)
+    //     );
+    //     `;
+    //     const q1= `CREATE TABLE IF NOT EXISTS sessions(
+    //     id SERIAL PRIMARY KEY,
+    //     room_code VARCHAR UNIQUE NOT NULL,
+    //     host_user_id INTEGER REFERENCES users(id),
+    //     name VARCHAR,
+    //     is_public BOOLEAN DEFAULT false,
+    //     is_active BOOLEAN DEFAULT true,
+    //     created_at TIMESTAMP DEFAULT NOW()
+    //     );
+    //     `;
+    //     const q2 = `CREATE TABLE IF NOT EXISTS session_members(
+    //     id SERIAL PRIMARY KEY,
+    //     session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
+    //     user_id INTEGER REFERENCES users(id),
+    //     joined_at TIMESTAMP DEFAULT NOW(),
+    //     UNIQUE(session_id, user_id)
+    //     );
+    //     `;
 
-        await pool.query(q);
-        await pool.query(q1);
-        await pool.query(q2);
-    },
+    //     await pool.query(q);
+    //     await pool.query(q1);
+    //     await pool.query(q2);
+    // },
 
     async insertUser(platform, email, platform_id, display_name, avatar_url, access_token,refresh_token,token_expires_at){
         const q = `INSERT into users(platform, email, platform_id, display_name, avatar_url, access_token,refresh_token,token_expires_at)
