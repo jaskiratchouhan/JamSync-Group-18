@@ -360,12 +360,109 @@ app.get('/auth/spotify/callback', async function(req, res) {
 
     const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
-    const frontPageUrl = frontEndUrl + "/homepage"
+    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage"
     res.redirect(frontPageUrl);
   }
   catch(err) {
     console.error(err);
     res.status(500).send("Token exchange failed")
+  }
+});
+
+
+var youtube_redirect_uri = 'http://127.0.0.1:3001/auth/youtube/callback';
+
+app.get('/auth/youtube', function(req, res) {
+
+  var state = helpers.generateRandomString(16);
+  var scope = 'openid email profile https://www.googleapis.com/auth/youtube.readonly';
+
+  res.redirect('https://accounts.google.com/o/oauth2/v2/auth?' +
+    querystring.stringify({
+      response_type: 'code',
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      scope: scope,
+      redirect_uri: youtube_redirect_uri,
+      state: state,
+      access_type: 'offline',
+      prompt: 'consent',
+    }));
+});
+
+
+app.get('/auth/youtube/callback', async function(req, res) {
+
+  var code = req.query.code || null;
+  var state = req.query.state || null;
+
+  if (state === null) {
+    return res.redirect('/#' +
+      querystring.stringify({
+        error: 'state_mismatch'
+      }));
+  }
+
+  try {
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+      code: code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: youtube_redirect_uri,
+      grant_type: 'authorization_code'
+    }, {
+      headers: { 'content-type': 'application/x-www-form-urlencoded' }
+    });
+
+    const {access_token, refresh_token, expires_in} = tokenResponse.data;
+    const profileInfo = await axios.get("https://www.googleapis.com/oauth2/v2/userinfo", {headers: {Authorization: `Bearer ${access_token}`}})
+
+    const {id: account_id, email, name: display_name, picture: avatar_url} = profileInfo.data;
+
+    const token_expires_at = new Date(Date.now() + expires_in * 1000);
+
+    const user = await helpers.insertUser('youtube', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
+    console.log('saved user:', user);
+    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
+    res.redirect(frontPageUrl);
+  }
+  catch(err) {
+    const detail = err.response?.data || err.message;
+    console.error('YouTube auth error:', detail);
+    res.status(500).send("Token exchange failed: " + JSON.stringify(detail));
+  }
+});
+
+
+app.get('/api/playlists', async function(req, res) {
+
+  const userId = req.query.userId;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing userId' });
+  }
+
+  try {
+    const user = await helpers.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.platform !== 'youtube') {
+      return res.status(400).json({ error: 'Unsupported platform' });
+    }
+
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
+      params: { part: 'snippet', mine: true, maxResults: 50 },
+      headers: { Authorization: `Bearer ${user.access_token}` }
+    });
+
+    const playlists = response.data.items.map((item) => ({ id: item.id, name: item.snippet.title }));
+    return res.json({ platform: 'youtube', playlists });
+  } catch (err) {
+    const detail = err.response?.data || err.message;
+    console.error('Playlists error:', detail);
+    res.status(500).json({ error: 'Could not fetch playlists' });
   }
 });
 
