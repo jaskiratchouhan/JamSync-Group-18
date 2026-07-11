@@ -360,7 +360,7 @@ app.get('/auth/spotify/callback', async function(req, res) {
 
     const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
-    const frontPageUrl = frontEndUrl + "/homepage"
+    const frontPageUrl = frontEndUrl + "/homepage";
     res.redirect(frontPageUrl);
   }
   catch(err) {
@@ -368,6 +368,18 @@ app.get('/auth/spotify/callback', async function(req, res) {
     res.status(500).send("Token exchange failed")
   }
 });
+// auth jam login
+app.get("/auth/guest", async function(req,res) {
+  try{
+    const user = await helpers.insertBasicUser();
+    res.redirect(`${frontEndUrl}/guest-welcome?guest_id=${user.id}&guest_name=${encodeURIComponent(user.display_name)}`)
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).send("Failed to create guest user");
+  }
+  
+})
 
 
 server.listen(3001, () => {
