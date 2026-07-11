@@ -10,8 +10,8 @@ export const up = function(knex) {
         table.string('platform_id');
         table.string('display_name');
         table.string('avatar_url');
-        table.string('access_token');
-        table.string('refresh_token');
+        table.text('access_token');
+        table.text('refresh_token');
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('token_expires_at');
         table.unique(['platform', 'platform_id']);

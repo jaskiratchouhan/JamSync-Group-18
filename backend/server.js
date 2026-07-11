@@ -8,9 +8,9 @@ import { Server } from "socket.io";
 import dotenv from 'dotenv';
 dotenv.config();
 
-(async () => {
-    await helpers.init();
-})();
+// (async () => {
+//     await helpers.init();
+// })();
 
 const app = express();
 app.use(cors());
