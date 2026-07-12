@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Bungee&family=Dancing+Script:wght@600&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Fredoka:wdth,wght@87.5,300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:wght@100..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Pacifico&family=Raleway:ital,wght@0,100..900;1,100..900&family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
+:root{
+
+    --backgroundcolor: #1a2a52;
+    --header: #33477c;
+    --textcolor: #d4e4ff;
+    --secondarycolor: #2d4373;
+    --placeholder: #7a9bbf;
+    --thirdcolor: #81a8cb;
+    
+}
+.page{
+    background-color: var(--backgroundcolor);
+    min-height: 100vh;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+img{
+    width: 20%;
+    height: 20%;
+    border-radius: 50%;
+    background-color: var(--secondarycolor);
+    margin: 32px 0;
+    box-shadow: 12px 10px 12px rgba(0,0,0,0.4);
+
+}
+button:hover{
+    transform: translateY(-2px)
+}
+.userText{
+    padding-top: 25px;
+    font-size: 27px;
+    color: var(--placeholder);
+    letter-spacing: 1.2px;
+    font-family: "Montserrat", "sans-serif";
+  
+}
+.userName {
+    font-size: 21px;
+    font-weight: 500;
+    color: white;
+    font-family: "Montserrat", "sans-serif";
+    letter-spacing: 3.4px;
+    
+}
+.title{
+    color: #7a9bbf;
+    color: white;
+    line-height: 1.4;
+    border-radius: 20px; 
+    font-family: "Montserrat"; 
+    letter-spacing: 2.4px;
+    margin-bottom: 32px;
+     
+}
+.page > * {
+    animation: fadeIn 1.3s ease-in; 
+}
+@keyframes fadeIn{
+    0%{
+        opacity: 0;
+        transform: translateY(9px);
+    }
+    100%{
+        opacity:1;
+        transform: translateY(0);  
+    }
+}
+.getStartedButton{
+    margin-top: 11px;
+    font-size: 22px;
+    padding: 12px 40px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    background-color: var(--placeholder);
+    font-family: "Raleway", sans-serif;
+    box-shadow: 12px 10px 12px rgba(0,0,0,0.4);
+    transition: all 0.3s ease-in-out;
+
+}
