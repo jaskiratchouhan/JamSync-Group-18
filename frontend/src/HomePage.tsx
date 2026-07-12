@@ -6,7 +6,14 @@ import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { io} from "socket.io-client";
 import "./App.css";
 
+type Profile = {
+  id: number;
+  email: string,
+  display_name: string;
+  avatar_url: string | null;
+  platform: string;
 
+}
 
 type UserSession = {
   id: string;
@@ -98,6 +105,24 @@ export default function HomePage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [platform, setPlatform] = useState<string | null>(null);
 
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect (() => {
+    if (!userId) return;
+
+    (async () => {
+    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`)
+      if (!res.ok) {
+        throw new Error("Something went wrong. Could not load the user profile.");
+      }
+        const profileInfo: Profile = await res.json()
+        setProfile(profileInfo)
+      })().catch((error) => {
+        console.error(error)
+
+      
+    });
+}, [userId]);
   useEffect(() => {
     socket.emit("sessions:getAll");
 
@@ -154,19 +179,49 @@ export default function HomePage() {
     )
   }
 
+
+  let profileArea;
+  if (profile) {
+    profileArea = (
+      <div className="profile_Area"> 
+        
+      
+        <div className = "info">
+          <p>{profile.display_name}</p>
+          <p>{profile.email}</p>
+          <p>Platform: {profile.platform}</p>
+        </div>
+          {profile.avatar_url && (
+          <img src={profile.avatar_url} width={72} />
+        
+        )
+        }
+        
+      </div>
+    )
+  } else {
+    profileArea = (
+      <p>Guest</p>
+    )
+  }
+
   return (
     <main className="home-page">
-      
-      <header>
+      <div className="top-portion">
+      <header className="title-portion">
         <h1>JamSync Live Prototype</h1>
         <p>You are {user.name}</p>
       </header>
 
 
-       <section>
+       <section className="profile-portion">
                 <h2>Profile</h2>
-                
-            </section>
+                {profileArea}
+                </section>
+                </div>
+            
+                <div className="bottom-portion">
+            
             {platform && (
         <section className="playlists">
           <h2>{platform} playlists</h2>
@@ -177,9 +232,11 @@ export default function HomePage() {
           </ul>
         </section>
       )}
+      <div className="sessions-portion">
 
              <section>
                 <h2>Sessions</h2>
+              <div className="session-buttons">
 
  
 
@@ -202,13 +259,16 @@ export default function HomePage() {
                     if (trimmedRoomInput.length !== 0) {
                     setCurrentActiveRoomID(trimmedRoomInput)}}}>Join Session</button>
       </div>
+      </div>
       </section>
       
-                  <section>
-                <h2>Available Sessions</h2>
+                  <section className="avail-sess">
+                <h2 className = "avail">Available Sessions</h2>
                 {sessionsList}
                 
             </section>
+            </div>
+            </div>
     </main>
   );
 }

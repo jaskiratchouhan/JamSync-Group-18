@@ -466,6 +466,32 @@ app.get('/auth/youtube/callback', async function(req, res) {
   }
 });
 
+app.get("/api/profile", async function(req,res) {
+  const idOfUser = req.query.userId;
+
+  if(!idOfUser) {
+    return res.status(400).json({
+      error: "User not valid."
+    })
+  }
+    const user = await helpers.getUserById(idOfUser);
+
+    if (!user) {
+      return res.status(404).json({error:"Couldn't find the user."});
+    }
+
+    return res.json({
+      id: user.id,
+      display_name: user.display_name,
+      platform: user.platform,
+      email: user.email,
+      avatar_url: user.avatar_url
+      
+    });
+  
+  
+})
+
 
 app.get('/api/playlists', async function(req, res) {
 
