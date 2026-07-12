@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Bungee&family=Dancing+Script:wght@600&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Fredoka:wdth,wght@87.5,300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:wght@100..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Pacifico&family=Raleway:ital,wght@0,100..900;1,100..900&family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
+
 * {
   box-sizing: border-box;
   color: black;
@@ -21,15 +23,17 @@ button:disabled {
   cursor: not-allowed;
 }
 
+
 .home-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: 16px;
-  background: #f4f4f4;
+  background: #0d0c0a;
 }
+
 
 .home-page button,
 .home-page input,
@@ -37,12 +41,131 @@ button:disabled {
   padding: 10px 14px;
   border: 1px solid #222;
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 18px;
 }
 
+.home-page button {
+  background: #29241e;
+  color:#eadfca;
+  border: 1px solid #3e392e;
+  
+}
+.profile_Area {
+  background:#1c1a17;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  /* background:#5bb1e3; */
+  border-radius: 10px;
+  font-family:Georgia, 'Times New Roman', Times, serif;
+  border: 1px solid #c9963f;
+  padding-right: 1.8rem;
+  border-radius: 38px;
+  justify-content: flex-end;
+  width: 80%;
+  height: 60%;
+  margin-left: auto;
+  
+  
+}
+
+.profile_Area img{
+  width: 14%;
+  height: 14%;
+  border-radius: 50%;
+  padding: 0.45rem;
+  background-color: #c9963f;
+  
+}
+
+.info{
+  background-color:#c9963f ;
+  border-radius: 15px;
+  padding: 1rem;
+  background-color: transparent;
+  text-align: right;
+  flex-direction: column;
+  align-items: flex-end;
+  
+}
+.info p:first-child{
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.info p:last-child{
+  color: white;
+  font-size: 16px;
+  margin: 0;
+}
+
+.top-portion{
+  display:flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width:100%;
+  padding:15px 36px;
+  background-color: #1b1916;
+  border-bottom: 1px solid #2c2923;
+  
+  
+}
+.top-portion h1 {
+  font-size: 52px;
+  color: white;
+  font-family: "Montserrat", sans-serif;
+  line-height: 1.2;
+}
+.top-portion p{
+  color: white;
+  font-family: "Raleway";
+  font-size: 19px;
+  letter-spacing: 1.5px;
+}
+
+.bottom-portion {
+  display:flex;
+  gap:25px;
+  width:100%;
+  padding:27px 34px;
+
+  align-items: flex-start;
+}
+.playlists {
+  flex:1;
+
+}
+
+
+.sessions-portion {
+  flex:1;
+  background:#1b1916;
+  padding: 13px;
+  
+}
+.sessions-portion p {
+  color:#d9c7a4
+}
+
+.session-buttons {
+  margin-top: 30px;
+  display:flex;
+  gap: 12px;
+  align-items:center;
+  flex-direction: column;
+}
 .join-box {
   display: flex;
   gap: 8px;
+  margin-top: 2rem;
+}
+.avail{
+  margin-top: 2.7rem;
+}
+.avail-sess {
+  font-size:25px;
 }
 
 .room-page {
@@ -106,6 +229,7 @@ button:disabled {
   font-size: 14px;
   min-height: 28px;
 }
+
 
 .button-row {
   display: flex;
@@ -198,11 +322,12 @@ button:disabled {
 
 .home-page h1,
 .home-page h2 {
-  color: black;
+  
+  color:#eae1d1;
 }
 
 .playlists {
-  color: black;
+  background: #1b1916;
   text-align: center;
 }
 
@@ -213,4 +338,22 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  color:#d9c7a4
 }
+
+.playlists h2 {
+  color:#c9963f;
+  font-size:42px;
+}
+.sessions-portion h2 {
+  color:#c9963f;
+  font-size:42px;
+}
+.sessions-portion button {
+  font-size: 25px;
+}
+.playlists li {
+  color: #d9c7a4;
+  font-size:25px;
+}
+

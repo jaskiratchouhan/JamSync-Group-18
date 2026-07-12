@@ -56,7 +56,29 @@ function makeRoomUser(user, socket, isHost) {
   };
 }
 
+function providingListofSessions() {
+  const sessionsArray = [];
+  for (const room of Object.values(rooms)) {
+      sessionsArray.push({
+        id:room.id,
+        users: room.users.map((user) => ({
+          id: user.id,
+          name: user.name
+        }))
+          
+        
+        
+      });
+    }
+    io.emit("sessions:allSessions", sessionsArray)
+  }
+
+
 io.on("connection", (socket) => {
+  socket.on("sessions:getAll", () => {
+    providingListofSessions();
+});
+
   console.log("Connected:", socket.id);
 
   socket.on("room:create", ({ user }) => {
@@ -75,10 +97,19 @@ io.on("connection", (socket) => {
 
     socket.emit("room:created", { roomId, room });
     io.to(roomId).emit("room:update", room);
+    providingListofSessions();
   });
 
   socket.on("room:join", ({ roomId, user }) => {
-    const room = getRoom(roomId);
+    const room = rooms[roomId];
+
+    if(!room) {
+      socket.emit("room:error", {
+        error: "Room does not exist."
+
+      });
+      return;
+    }
 
     // prevents the same tab/user from appearing twice
     room.users = room.users.filter((u) => u.id !== user.id);
@@ -100,6 +131,7 @@ io.on("connection", (socket) => {
     });
 
     io.to(roomId).emit("room:update", room);
+    providingListofSessions();
   });
 
   socket.on("room:leave", ({ roomId, userId }, callback) => {
@@ -288,10 +320,12 @@ function leaveRoom(socket, roomId, userId) {
 
   if (room.users.length === 0) {
     delete rooms[roomId];
+    providingListofSessions();
     return;
   }
 
   io.to(roomId).emit("room:update", room);
+  providingListofSessions();
 }
 
 // auth
@@ -443,6 +477,32 @@ app.get('/auth/youtube/callback', async function(req, res) {
     res.status(500).send("Token exchange failed: " + JSON.stringify(detail));
   }
 });
+
+app.get("/api/profile", async function(req,res) {
+  const idOfUser = req.query.userId;
+
+  if(!idOfUser) {
+    return res.status(400).json({
+      error: "User not valid."
+    })
+  }
+    const user = await helpers.getUserById(idOfUser);
+
+    if (!user) {
+      return res.status(404).json({error:"Couldn't find the user."});
+    }
+
+    return res.json({
+      id: user.id,
+      display_name: user.display_name,
+      platform: user.platform,
+      email: user.email,
+      avatar_url: user.avatar_url
+      
+    });
+  
+  
+})
 
 
 app.get('/api/playlists', async function(req, res) {

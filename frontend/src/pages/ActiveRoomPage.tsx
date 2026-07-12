@@ -43,6 +43,7 @@ type Props = {
 const socket: Socket = io("http://localhost:3001");
 
 export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
+  const [roomError, setRoomError] = useState("");
   const [currentRoomId, setCurrentRoomId] = useState(roomId);
   const [room, setRoom] = useState<RoomState | null>(null);
   const [localMutedUsers, setLocalMutedUsers] = useState<string[]>([]);
@@ -262,6 +263,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       setRoom(room);
     });
 
+    socket.on("room:error", ({error}) => {
+      setRoomError(error);
+    })
+
     socket.on("room:update", (room) => {
       setRoom(room);
     });
@@ -396,6 +401,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     });
 
     window.location.href = "/";
+  }
+
+  if (roomError) {
+    return <p>{roomError}</p>
   }
 
   if (!room) {

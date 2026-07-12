@@ -1,6 +1,32 @@
-import { useEffect, useState } from "react";
+
+import { useState, useEffect } from "react";
+
+
 import { ActiveRoomPage } from "./pages/ActiveRoomPage";
+import { io} from "socket.io-client";
 import "./App.css";
+
+type Profile = {
+  id: number;
+  email: string,
+  display_name: string;
+  avatar_url: string | null;
+  platform: string;
+
+}
+
+type UserSession = {
+  id: string;
+  name:string;
+}
+type Session = {
+  id: string;
+  users: UserSession[];
+};
+
+
+
+const socket = io("http://localhost:3001");
 
 const BACKEND_URL = "http://127.0.0.1:3001";
 
@@ -8,6 +34,7 @@ type Playlist = {
   id: string;
   name: string;
 };
+
 
 function makeRandomUser() {
   const id = crypto.randomUUID();
@@ -69,12 +96,43 @@ export default function HomePage() {
   const roomFromUrl = params.get("room");
   const userId = params.get("userId");
 
-  const [roomIdInput, setRoomIdInput] = useState(roomFromUrl ?? "");
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(roomFromUrl);
-  const [shouldCreateRoom, setShouldCreateRoom] = useState(false);
+  const [roomInput, setRoomInput] = useState(roomFromUrl ?? "");
+  const [currentActiveRoomID, setCurrentActiveRoomID] = useState<string | null>(roomFromUrl);
+  const [makingRoom, setMakingRoom] = useState(false);
 
+
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [platform, setPlatform] = useState<string | null>(null);
+
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect (() => {
+    if (!userId) return;
+
+    (async () => {
+    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`)
+      if (!res.ok) {
+        throw new Error("Something went wrong. Could not load the user profile.");
+      }
+        const profileInfo: Profile = await res.json()
+        setProfile(profileInfo)
+      })().catch((error) => {
+        console.error(error)
+
+      
+    });
+}, [userId]);
+  useEffect(() => {
+    socket.emit("sessions:getAll");
+
+    socket.on("sessions:allSessions", (sessionsArray: Session[]) => {
+      setSessions(sessionsArray);
+    })
+    return () => {
+      socket.off("sessions:allSessions");
+    }
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -91,22 +149,80 @@ export default function HomePage() {
       .catch(() => {});
   }, [userId]);
 
-  if (activeRoomId || shouldCreateRoom) {
+  const roomInfo = currentActiveRoomID || makingRoom;
+
+
+  if (roomInfo) {
+
+
+  
+
+ 
+
     return (
-      <ActiveRoomPage
-        user={user}
-        roomId={activeRoomId}
-        shouldCreateRoom={shouldCreateRoom}
-      />
+        <ActiveRoomPage
+            user={user}
+            roomId={currentActiveRoomID}
+            shouldCreateRoom={makingRoom}
+            />
     );
+  }
+
+  const sessionsList = [];
+  for (const session of sessions) {
+    sessionsList.push(
+      <div key ={session.id}>
+        <p> Session: {session.id}</p>
+        <p>Users: {session.users.map((user) => user.name).join()}</p>
+        <button onClick={() => setCurrentActiveRoomID(session.id)}>Join</button>
+      </div>
+    )
+  }
+
+
+  let profileArea;
+  if (profile) {
+    profileArea = (
+      <div className="profile_Area"> 
+        
+      
+        <div className = "info">
+          <p>{profile.display_name}</p>
+          <p>{profile.email}</p>
+          <p>Platform: {profile.platform}</p>
+        </div>
+          {profile.avatar_url && (
+          <img src={profile.avatar_url} width={72} />
+        
+        )
+        }
+        
+      </div>
+    )
+  } else {
+    profileArea = (
+      <p>Guest</p>
+    )
   }
 
   return (
     <main className="home-page">
-      <h1>JamSync Live Prototype</h1>
-      <p>You are {user.name}</p>
+      <div className="top-portion">
+      <header className="title-portion">
+        <h1>JamSync Live Prototype</h1>
+        <p>You are {user.name}</p>
+      </header>
 
-      {platform && (
+
+       <section className="profile-portion">
+                <h2>Profile</h2>
+                {profileArea}
+                </section>
+                </div>
+            
+                <div className="bottom-portion">
+            
+            {platform && (
         <section className="playlists">
           <h2>{platform} playlists</h2>
           <ul>
@@ -116,28 +232,43 @@ export default function HomePage() {
           </ul>
         </section>
       )}
+      <div className="sessions-portion">
 
+             <section>
+                <h2>Sessions</h2>
+              <div className="session-buttons">
+
+ 
+
+     <button onClick={() => setMakingRoom(true)}> Create Session</button>
+
+     
+{/* 
       <button onClick={() => setShouldCreateRoom(true)}>
         Create Chat
-      </button>
+      </button> */}
+
 
       <div className="join-box">
-        <input
-          value={roomIdInput}
-          onChange={(e) => setRoomIdInput(e.target.value)}
-          placeholder="Enter room code"
-        />
+        <input 
+                value={roomInput} onChange={(e)=> setRoomInput(e.target.value)}
 
-        <button
-          onClick={() => {
-            if (roomIdInput.trim()) {
-              setActiveRoomId(roomIdInput.trim());
-            }
-          }}
-        >
-          Enter Chat
-        </button>
+                placeholder="Enter the Session Code" />
+                <button onClick={() => {
+                    const trimmedRoomInput = roomInput.trim();
+                    if (trimmedRoomInput.length !== 0) {
+                    setCurrentActiveRoomID(trimmedRoomInput)}}}>Join Session</button>
       </div>
+      </div>
+      </section>
+      
+                  <section className="avail-sess">
+                <h2 className = "avail">Available Sessions</h2>
+                {sessionsList}
+                
+            </section>
+            </div>
+            </div>
     </main>
   );
 }
