@@ -18,5 +18,9 @@
     "knex": "^3.3.0",
     "pg": "^8.22.0",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.20.0"
   }
 }

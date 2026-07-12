@@ -1,6 +1,6 @@
-import express from "express";
+import express, {Request, Response} from 'express';
 import axios from 'axios';
-import {helpers} from './db.js';
+import {helpers, User, Session, SessionMember} from './db.js';
 import querystring from 'querystring'
 import http from "http";
 import cors from "cors";
@@ -336,6 +336,9 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 
 const frontEndUrl = process.env.FRONTEND_URL;
+if (!frontEndUrl){
+  throw new Error('FrontendURL must be set in .env');
+}
 var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 
 app.get('/auth/spotify', function(req, res) {
@@ -365,7 +368,8 @@ app.get('/auth/spotify/callback', async function(req, res) {
       querystring.stringify({
         error: 'state_mismatch'
       }));
-  } else {
+  }
+
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       form: {
@@ -375,11 +379,11 @@ app.get('/auth/spotify/callback', async function(req, res) {
       },
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + (new Buffer.from(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64'))
       },
       json: true
     };
-  }
+  
 
   try {
     const tokenResponse = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers})
@@ -472,9 +476,17 @@ app.get('/auth/youtube/callback', async function(req, res) {
     res.redirect(frontPageUrl);
   }
   catch(err) {
-    const detail = err.response?.data || err.message;
-    console.error('YouTube auth error:', detail);
-    res.status(500).send("Token exchange failed: " + JSON.stringify(detail));
+    if (axios.isAxiosError(err)){
+      const detail = err.response?.data || err.message;
+      console.error('YouTube auth error:', detail);
+      res.status(500).send("Token exchange failed: " + JSON.stringify(detail));
+
+    }
+    else {
+      res.status(500).send("Token exchange failed: ");
+
+    }
+    
   }
 });
 
@@ -486,7 +498,13 @@ app.get("/api/profile", async function(req,res) {
       error: "User not valid."
     })
   }
-    const user = await helpers.getUserById(idOfUser);
+    const userId = Number(idOfUser);
+    if(Number.isNaN(userId)){
+      return res.status(400).json({
+      error: "User not valid."
+      })
+    }
+    const user = await helpers.getUserById(userId);
 
     if (!user) {
       return res.status(404).json({error:"Couldn't find the user."});
@@ -514,7 +532,13 @@ app.get('/api/playlists', async function(req, res) {
   }
 
   try {
-    const user = await helpers.getUserById(userId);
+    const userIdN = Number(userId);
+    if(Number.isNaN(userIdN)){
+      return res.status(400).json({
+      error: "User not valid."
+      })
+    }
+    const user = await helpers.getUserById(userIdN);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -526,7 +550,7 @@ app.get('/api/playlists', async function(req, res) {
         headers: { Authorization: `Bearer ${user.access_token}` }
       });
 
-      const playlists = response.data.items.map((item) => ({ id: item.id, name: item.name }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name }));
       return res.json({ platform: 'spotify', playlists });
     }
 
@@ -536,14 +560,21 @@ app.get('/api/playlists', async function(req, res) {
         headers: { Authorization: `Bearer ${user.access_token}` }
       });
 
-      const playlists = response.data.items.map((item) => ({ id: item.id, name: item.snippet.title }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.snippet.title }));
       return res.json({ platform: 'youtube', playlists });
     }
 
     return res.status(400).json({ error: 'Unsupported platform' });
   } catch (err) {
-    const detail = err.response?.data || err.message;
-    console.error('Playlists error:', detail);
+    if (axios.isAxiosError(err)){
+      const detail = err.response?.data || err.message;
+      console.error('Playlists error:', detail);
+
+    }
+    else {
+      console.error('Playlists error:', err);
+    }
+    
     res.status(500).json({ error: 'Could not fetch playlists' });
   }
 });
