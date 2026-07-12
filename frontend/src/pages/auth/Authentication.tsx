@@ -35,6 +35,14 @@ export default function Authentication() {
                             <button className = {styles.spotifyButton}>Connect to Spotify</button>
                         </a>
                     </div>
+                    <div className = {styles.card}>
+                        <h2>Connect to youtube!</h2>
+                        <img src = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1280px-YouTube_full-color_icon_%282017%29.svg.png"/>
+                        <p>Link your youtube account to begin!</p>
+                        <a href = "http://127.0.0.1:3001/auth/youtube">
+                            <button className = {styles.youtubeButton}>Connect to YouTube</button>
+                        </a>
+                    </div>
             </div>
         </div>
         

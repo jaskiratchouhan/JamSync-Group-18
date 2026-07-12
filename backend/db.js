@@ -78,8 +78,7 @@ const helpers = {
             "#64B5F6",
             "#BA68C8"
         ];
-
-        const adjectives = [
+             const adjectives = [
         "Anonymous",
         "Happy",
         "Chill",
@@ -111,6 +110,21 @@ const helpers = {
 
     return `${adjective} ${animal} ${number}`;
     },
+
+    async getUserById(id){
+        const q = `SELECT * FROM users WHERE id = $1`;
+        const result = await pool.query(q, [id]);
+        return result.rows[0];
+    },
+    // init: async(): Promise<void> => {
+    //     const q = `CREATE TABLE IF NOT EXISTS User(
+    //     id SERIAL PRIMARY KEY,
+    //     name VARCHAR(100), 
+    //     platform TEXT NOT NULL,
+    //     );
+    //     `;
+
+   
     
     async generateUniqueUsername(){
         let username;

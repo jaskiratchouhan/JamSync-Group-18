@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import "./App.css";
+
+const BACKEND_URL = "http://127.0.0.1:3001";
+
+type Playlist = {
+  id: string;
+  name: string;
+};
 
 function makeRandomUser() {
   const id = crypto.randomUUID();
@@ -60,10 +67,29 @@ export default function HomePage() {
   const [user] = useState(makeRandomUser);
   const params = new URLSearchParams(window.location.search);
   const roomFromUrl = params.get("room");
+  const userId = params.get("userId");
 
   const [roomIdInput, setRoomIdInput] = useState(roomFromUrl ?? "");
   const [activeRoomId, setActiveRoomId] = useState<string | null>(roomFromUrl);
   const [shouldCreateRoom, setShouldCreateRoom] = useState(false);
+
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [platform, setPlatform] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load playlists");
+        return res.json();
+      })
+      .then((data) => {
+        setPlatform(data.platform);
+        setPlaylists(data.playlists);
+      })
+      .catch(() => {});
+  }, [userId]);
 
   if (activeRoomId || shouldCreateRoom) {
     return (
@@ -79,6 +105,17 @@ export default function HomePage() {
     <main className="home-page">
       <h1>JamSync Live Prototype</h1>
       <p>You are {user.name}</p>
+
+      {platform && (
+        <section className="playlists">
+          <h2>{platform} playlists</h2>
+          <ul>
+            {playlists.map((playlist) => (
+              <li key={playlist.id}>{playlist.name}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <button onClick={() => setShouldCreateRoom(true)}>
         Create Chat
