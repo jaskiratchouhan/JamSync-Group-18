@@ -8,9 +8,9 @@ import { Server } from "socket.io";
 import dotenv from 'dotenv';
 dotenv.config();
 
-(async () => {
- await helpers.init();
-})();
+// (async () => {
+//     await helpers.init();
+// })();
 
 const app = express();
 app.use(cors());
@@ -402,6 +402,18 @@ app.get('/auth/spotify/callback', async function(req, res) {
     res.status(500).send("Token exchange failed")
   }
 });
+// auth jam login
+app.get("/auth/guest", async function(req,res) {
+  try{
+    const user = await helpers.insertBasicUser();
+    res.redirect(`${frontEndUrl}/guest-welcome?guest_id=${user.id}&guest_name=${encodeURIComponent(user.display_name)}`)
+  }
+  catch(err){
+    console.error(err);
+    res.status(500).send("Failed to create guest user");
+  }
+  
+})
 
 
 var youtube_redirect_uri = 'http://127.0.0.1:3001/auth/youtube/callback';
