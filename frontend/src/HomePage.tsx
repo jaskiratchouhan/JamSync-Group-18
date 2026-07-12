@@ -1,7 +1,11 @@
+
 import { useState, useEffect } from "react";
+
+
 import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { io} from "socket.io-client";
 import "./App.css";
+
 
 
 type UserSession = {
@@ -16,6 +20,15 @@ type Session = {
 
 
 const socket = io("http://localhost:3001");
+
+const BACKEND_URL = "http://127.0.0.1:3001";
+
+type Playlist = {
+  id: string;
+  name: string;
+};
+
+
 function makeRandomUser() {
   const id = crypto.randomUUID();
 
@@ -74,12 +87,16 @@ export default function HomePage() {
   const [user] = useState(makeRandomUser);
   const params = new URLSearchParams(window.location.search);
   const roomFromUrl = params.get("room");
+  const userId = params.get("userId");
 
   const [roomInput, setRoomInput] = useState(roomFromUrl ?? "");
   const [currentActiveRoomID, setCurrentActiveRoomID] = useState<string | null>(roomFromUrl);
   const [makingRoom, setMakingRoom] = useState(false);
 
+
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [platform, setPlatform] = useState<string | null>(null);
 
   useEffect(() => {
     socket.emit("sessions:getAll");
@@ -92,9 +109,31 @@ export default function HomePage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load playlists");
+        return res.json();
+      })
+      .then((data) => {
+        setPlatform(data.platform);
+        setPlaylists(data.playlists);
+      })
+      .catch(() => {});
+  }, [userId]);
+
   const roomInfo = currentActiveRoomID || makingRoom;
 
+
   if (roomInfo) {
+
+
+  
+
+ 
+
     return (
         <ActiveRoomPage
             user={user}
@@ -123,16 +162,35 @@ export default function HomePage() {
         <p>You are {user.name}</p>
       </header>
 
+
        <section>
                 <h2>Profile</h2>
                 
             </section>
+            {platform && (
+        <section className="playlists">
+          <h2>{platform} playlists</h2>
+          <ul>
+            {playlists.map((playlist) => (
+              <li key={playlist.id}>{playlist.name}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
              <section>
                 <h2>Sessions</h2>
 
+ 
 
      <button onClick={() => setMakingRoom(true)}> Create Session</button>
+
+     
+{/* 
+      <button onClick={() => setShouldCreateRoom(true)}>
+        Create Chat
+      </button> */}
+
 
       <div className="join-box">
         <input 
@@ -145,6 +203,7 @@ export default function HomePage() {
                     setCurrentActiveRoomID(trimmedRoomInput)}}}>Join Session</button>
       </div>
       </section>
+      
                   <section>
                 <h2>Available Sessions</h2>
                 {sessionsList}

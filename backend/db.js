@@ -48,6 +48,12 @@ const helpers = {
             console.error('insert user failed', err);
         }
     },
+
+    async getUserById(id){
+        const q = `SELECT * FROM users WHERE id = $1`;
+        const result = await pool.query(q, [id]);
+        return result.rows[0];
+    },
     // init: async(): Promise<void> => {
     //     const q = `CREATE TABLE IF NOT EXISTS User(
     //     id SERIAL PRIMARY KEY,
