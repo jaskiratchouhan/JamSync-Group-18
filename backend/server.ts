@@ -4,7 +4,7 @@ import {helpers, User, Session, SessionMember} from './db.js';
 import querystring from 'querystring'
 import http from "http";
 import cors from "cors";
-import { Server } from "socket.io";
+import { Server, Socket} from "socket.io";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -24,9 +24,34 @@ const io = new Server(server, {
   }
 });
 
-const rooms = {};
+type RoomUser = {
+  id: string | number;
+  name: string;
+  color?: string;
+  socketId: string;
+  isHost: boolean;
+  isSelfMuted: boolean;
+  isForceMuted: boolean;
+  speaking: boolean;
+  transcript: string;
+  lastTranscriptAt?: number;
+};
 
-function getRoom(roomId) {
+type Room = {
+  id: string;
+  hostId: string | number | null;
+  users: RoomUser[];
+  music: {
+    title: string;
+    artist: string;
+    playing: boolean;
+    currentTime: number;
+  };
+};
+
+const rooms: Record<string, Room> = {};
+
+function getRoom(roomId: string): Room {
   if (!rooms[roomId]) {
     rooms[roomId] = {
       id: roomId,
@@ -44,7 +69,11 @@ function getRoom(roomId) {
   return rooms[roomId];
 }
 
-function makeRoomUser(user, socket, isHost) {
+function makeRoomUser(
+  user: { id: string | number; name: string; color?: string },
+  socket: Socket,
+  isHost: boolean
+): RoomUser {
   return {
     ...user,
     socketId: socket.id,
@@ -81,7 +110,9 @@ io.on("connection", (socket) => {
 
   console.log("Connected:", socket.id);
 
-  socket.on("room:create", ({ user }) => {
+  socket.on(
+  "room:create",
+  ({ user }: { user: { id: string | number; name: string; color?: string } }) => {
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
     const room = getRoom(roomId);
 
@@ -100,7 +131,15 @@ io.on("connection", (socket) => {
     providingListofSessions();
   });
 
-  socket.on("room:join", ({ roomId, user }) => {
+  socket.on(
+  "room:join",
+  ({
+    roomId,
+    user
+  }: {
+    roomId: string;
+    user: { id: string | number; name: string; color?: string };
+  }) => {
     const room = rooms[roomId];
 
     if(!room) {
@@ -285,7 +324,11 @@ io.on("connection", (socket) => {
   });
 });
 
-function leaveRoom(socket, roomId, userId) {
+function leaveRoom(
+  socket: Socket,
+  roomId: string,
+  userId: string | number
+) {
   const room = rooms[roomId];
   if (!room) return;
 
@@ -398,6 +441,10 @@ app.get('/auth/spotify/callback', async function(req, res) {
 
     const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
+    if (!user) {
+      console.error("User was unable to save");
+      return res.status(500).send("Failed to save user");
+    }
     const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
@@ -472,6 +519,10 @@ app.get('/auth/youtube/callback', async function(req, res) {
 
     const user = await helpers.insertUser('youtube', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
+    if (!user) {
+      console.error("User was unable to save");
+      return res.status(500).send("Failed to save user");
+    }
     const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
