@@ -1,5 +1,6 @@
 export type User = {
   id: string;
+  dbUserId: number;
   name: string;
   color: string;
   socketId?: string;

@@ -186,24 +186,31 @@ const helpers = {
     },
 
     async insertSession(room_code: string, host_user_id: number, name: string | null){
-        const q = `INSERT into sessions(room_code, host_user_id, name)
-        VALUES ($1, $2, $3)
+        const q = `INSERT into sessions(room_code, host_user_id, name, is_public)
+        VALUES ($1, $2, $3, true)
         RETURNING *`
         ;
         const result = await pool.query(q, [room_code, host_user_id, name]);
         return result.rows[0];
     },
-    async insertSessionMember(session_id: number, user_id: number): Promise<SessionMember>{
-        const q = `INSERT into session_members(session_id, user_id)
-        VALUES ($1, $2)
-        RETURNING *`;
+    async insertSessionMember(session_id: number, user_id: number): Promise<SessionMember | undefined> {
+        const q = `
+            INSERT INTO session_members(session_id, user_id)
+            VALUES ($1, $2)
+            ON CONFLICT(session_id, user_id) DO NOTHING
+            RETURNING *
+        `;
+
         const result = await pool.query(q, [session_id, user_id]);
         return result.rows[0];
     },
-    async deleteSessionMember(user_id: number){
-        const q = `DELETE FROM session_members WHERE user_id = $1`;
-        await pool.query(q, [user_id]);
+    async deleteSessionMember(session_id: number, user_id: number) {
+        const q = `
+            DELETE FROM session_members
+            WHERE session_id = $1 AND user_id = $2
+        `;
 
+        await pool.query(q, [session_id, user_id]);
     },
     async deleteSession(id: number){
         const q = `DELETE FROM sessions WHERE id= $1`;

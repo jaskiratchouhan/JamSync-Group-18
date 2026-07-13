@@ -26,6 +26,7 @@ const io = new Server(server, {
 
 type RoomUser = {
   id: string | number;
+  dbUserId: number;
   name: string;
   color?: string;
   socketId: string;
@@ -39,6 +40,7 @@ type RoomUser = {
 
 type Room = {
   id: string;
+  dbSessionId: number | null;
   hostId: string | number | null;
   users: RoomUser[];
   music: {
@@ -55,6 +57,7 @@ function getRoom(roomId: string): Room {
   if (!rooms[roomId]) {
     rooms[roomId] = {
       id: roomId,
+      dbSessionId: null,
       hostId: null,
       users: [],
       music: {
@@ -70,7 +73,7 @@ function getRoom(roomId: string): Room {
 }
 
 function makeRoomUser(
-  user: { id: string | number; name: string; color?: string },
+  user: {id: string | number; dbUserId: number; name: string; color?: string},
   socket: Socket,
   isHost: boolean
 ): RoomUser {
@@ -106,19 +109,38 @@ function providingListofSessions() {
 io.on("connection", (socket) => {
   socket.on("sessions:getAll", () => {
     providingListofSessions();
-});
+  });
 
   console.log("Connected:", socket.id);
 
-  socket.on(
-  "room:create",
-  ({ user }: { user: { id: string | number; name: string; color?: string } }) => {
+  socket.on("room:create", async ({user}: {
+    user: {
+      id: string | number;
+      dbUserId: number;
+      name: string;
+      color?: string;
+    };
+  }) => {
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
     const room = getRoom(roomId);
 
     room.hostId = user.id;
 
-    // prevents duplicate users from React dev reload / StrictMode
+    const dbSession = await helpers.insertSession(
+      roomId,
+      user.dbUserId,
+      `${user.name}'s Session`
+    );
+
+    if (!dbSession){
+      socket.emit("room:error", {error: "Could not save session."});
+      return;
+    }
+
+    room.dbSessionId = dbSession.id;
+
+    await helpers.insertSessionMember(dbSession.id, user.dbUserId);
+
     room.users = room.users.filter((u) => u.id !== user.id);
 
     const newUser = makeRoomUser(user, socket, true);
@@ -126,43 +148,43 @@ io.on("connection", (socket) => {
     room.users.push(newUser);
     socket.join(roomId);
 
-    socket.emit("room:created", { roomId, room });
+    socket.emit("room:created", {roomId, room});
     io.to(roomId).emit("room:update", room);
     providingListofSessions();
   });
 
-  socket.on(
-  "room:join",
-  ({
+  
+  socket.on("room:join", async ({
     roomId,
     user
   }: {
     roomId: string;
-    user: { id: string | number; name: string; color?: string };
+    user: {
+      id: string | number;
+      dbUserId: number;
+      name: string;
+      color?: string;
+    };
   }) => {
     const room = rooms[roomId];
 
-    if(!room) {
-      socket.emit("room:error", {
-        error: "Room does not exist."
-
-      });
+    if (!room){
+      socket.emit("room:error", {error: "Room does not exist."});
       return;
     }
 
-    // prevents the same tab/user from appearing twice
+    if (room.dbSessionId){
+      await helpers.insertSessionMember(room.dbSessionId, user.dbUserId);
+    }
+
     room.users = room.users.filter((u) => u.id !== user.id);
 
-    const newUser = makeRoomUser(
-      user,
-      socket,
-      room.hostId === user.id
-    );
+    const newUser = makeRoomUser(user, socket, room.hostId === user.id);
 
     room.users.push(newUser);
     socket.join(roomId);
 
-    socket.emit("room:joined", { roomId, room });
+    socket.emit("room:joined", {roomId, room});
 
     socket.to(roomId).emit("webrtc:user-joined", {
       userId: user.id,
@@ -173,11 +195,11 @@ io.on("connection", (socket) => {
     providingListofSessions();
   });
 
-  socket.on("room:leave", ({ roomId, userId }, callback) => {
-    leaveRoom(socket, roomId, userId);
+  socket.on("room:leave", async ({roomId, userId}, callback) => {
+    await leaveRoom(socket, roomId, userId);
 
-    if (callback) {
-      callback({ ok: true });
+    if (callback){
+      callback({ok: true});
     }
   });
 
@@ -310,7 +332,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("Disconnected:", socket.id);
 
     for (const roomId in rooms) {
@@ -318,13 +340,13 @@ io.on("connection", (socket) => {
       const leavingUser = room.users.find((u) => u.socketId === socket.id);
 
       if (leavingUser) {
-        leaveRoom(socket, roomId, leavingUser.id);
+        await leaveRoom(socket, roomId, leavingUser.id);
       }
     }
   });
 });
 
-function leaveRoom(
+async function leaveRoom(
   socket: Socket,
   roomId: string,
   userId: string | number
@@ -333,35 +355,53 @@ function leaveRoom(
   if (!room) return;
 
   const leavingUser = room.users.find((u) => u.id === userId);
+
   room.users = room.users.filter((u) => u.id !== userId);
 
   socket.leave(roomId);
 
-  if (leavingUser) {
+  if (leavingUser){
     socket.to(roomId).emit("webrtc:user-left", {
       socketId: leavingUser.socketId,
       userId
     });
+
+    if (room.dbSessionId){
+      const sameUserStillPresent = room.users.some(
+        (u) => u.dbUserId === leavingUser.dbUserId
+      );
+
+      if (!sameUserStillPresent){
+        await helpers.deleteSessionMember(
+          room.dbSessionId,
+          leavingUser.dbUserId
+        );
+      }
+    }
   }
 
-  if (room.hostId === userId) {
+  if (room.hostId === userId){
     room.hostId = room.users[0]?.id || null;
 
     room.users.forEach((u) => {
-        u.isHost = u.id === room.hostId;
+      u.isHost = u.id === room.hostId;
 
-        if (u.isHost) {
+      if (u.isHost){
         u.isForceMuted = false;
 
         io.to(u.socketId).emit("voice:force-muted", {
-            targetUserId: u.id,
-            muted: false
+          targetUserId: u.id,
+          muted: false
         });
-        }
+      }
     });
   }
 
-  if (room.users.length === 0) {
+  if (room.users.length === 0){
+    if (room.dbSessionId){
+      await helpers.deleteSession(room.dbSessionId);
+    }
+
     delete rooms[roomId];
     providingListofSessions();
     return;
