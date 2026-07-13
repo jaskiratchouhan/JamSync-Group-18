@@ -1,10 +1,10 @@
-import express from "express";
+import express, {Request, Response} from 'express';
 import axios from 'axios';
-import {helpers} from './db.js';
+import {helpers, User, Session, SessionMember} from './db.js';
 import querystring from 'querystring'
 import http from "http";
 import cors from "cors";
-import { Server } from "socket.io";
+import { Server, Socket} from "socket.io";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -24,12 +24,40 @@ const io = new Server(server, {
   }
 });
 
-const rooms = {};
+type RoomUser = {
+  id: string | number;
+  dbUserId: number;
+  name: string;
+  color?: string;
+  socketId: string;
+  isHost: boolean;
+  isSelfMuted: boolean;
+  isForceMuted: boolean;
+  speaking: boolean;
+  transcript: string;
+  lastTranscriptAt?: number;
+};
 
-function getRoom(roomId) {
+type Room = {
+  id: string;
+  dbSessionId: number | null;
+  hostId: string | number | null;
+  users: RoomUser[];
+  music: {
+    title: string;
+    artist: string;
+    playing: boolean;
+    currentTime: number;
+  };
+};
+
+const rooms: Record<string, Room> = {};
+
+function getRoom(roomId: string): Room {
   if (!rooms[roomId]) {
     rooms[roomId] = {
       id: roomId,
+      dbSessionId: null,
       hostId: null,
       users: [],
       music: {
@@ -44,7 +72,11 @@ function getRoom(roomId) {
   return rooms[roomId];
 }
 
-function makeRoomUser(user, socket, isHost) {
+function makeRoomUser(
+  user: {id: string | number; dbUserId: number; name: string; color?: string},
+  socket: Socket,
+  isHost: boolean
+): RoomUser {
   return {
     ...user,
     socketId: socket.id,
@@ -77,17 +109,38 @@ function providingListofSessions() {
 io.on("connection", (socket) => {
   socket.on("sessions:getAll", () => {
     providingListofSessions();
-});
+  });
 
   console.log("Connected:", socket.id);
 
-  socket.on("room:create", ({ user }) => {
+  socket.on("room:create", async ({user}: {
+    user: {
+      id: string | number;
+      dbUserId: number;
+      name: string;
+      color?: string;
+    };
+  }) => {
     const roomId = Math.floor(100000 + Math.random() * 900000).toString();
     const room = getRoom(roomId);
 
     room.hostId = user.id;
 
-    // prevents duplicate users from React dev reload / StrictMode
+    const dbSession = await helpers.insertSession(
+      roomId,
+      user.dbUserId,
+      `${user.name}'s Session`
+    );
+
+    if (!dbSession){
+      socket.emit("room:error", {error: "Could not save session."});
+      return;
+    }
+
+    room.dbSessionId = dbSession.id;
+
+    await helpers.insertSessionMember(dbSession.id, user.dbUserId);
+
     room.users = room.users.filter((u) => u.id !== user.id);
 
     const newUser = makeRoomUser(user, socket, true);
@@ -95,35 +148,43 @@ io.on("connection", (socket) => {
     room.users.push(newUser);
     socket.join(roomId);
 
-    socket.emit("room:created", { roomId, room });
+    socket.emit("room:created", {roomId, room});
     io.to(roomId).emit("room:update", room);
     providingListofSessions();
   });
 
-  socket.on("room:join", ({ roomId, user }) => {
+  
+  socket.on("room:join", async ({
+    roomId,
+    user
+  }: {
+    roomId: string;
+    user: {
+      id: string | number;
+      dbUserId: number;
+      name: string;
+      color?: string;
+    };
+  }) => {
     const room = rooms[roomId];
 
-    if(!room) {
-      socket.emit("room:error", {
-        error: "Room does not exist."
-
-      });
+    if (!room){
+      socket.emit("room:error", {error: "Room does not exist."});
       return;
     }
 
-    // prevents the same tab/user from appearing twice
+    if (room.dbSessionId){
+      await helpers.insertSessionMember(room.dbSessionId, user.dbUserId);
+    }
+
     room.users = room.users.filter((u) => u.id !== user.id);
 
-    const newUser = makeRoomUser(
-      user,
-      socket,
-      room.hostId === user.id
-    );
+    const newUser = makeRoomUser(user, socket, room.hostId === user.id);
 
     room.users.push(newUser);
     socket.join(roomId);
 
-    socket.emit("room:joined", { roomId, room });
+    socket.emit("room:joined", {roomId, room});
 
     socket.to(roomId).emit("webrtc:user-joined", {
       userId: user.id,
@@ -134,11 +195,11 @@ io.on("connection", (socket) => {
     providingListofSessions();
   });
 
-  socket.on("room:leave", ({ roomId, userId }, callback) => {
-    leaveRoom(socket, roomId, userId);
+  socket.on("room:leave", async ({roomId, userId}, callback) => {
+    await leaveRoom(socket, roomId, userId);
 
-    if (callback) {
-      callback({ ok: true });
+    if (callback){
+      callback({ok: true});
     }
   });
 
@@ -271,7 +332,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("Disconnected:", socket.id);
 
     for (const roomId in rooms) {
@@ -279,46 +340,68 @@ io.on("connection", (socket) => {
       const leavingUser = room.users.find((u) => u.socketId === socket.id);
 
       if (leavingUser) {
-        leaveRoom(socket, roomId, leavingUser.id);
+        await leaveRoom(socket, roomId, leavingUser.id);
       }
     }
   });
 });
 
-function leaveRoom(socket, roomId, userId) {
+async function leaveRoom(
+  socket: Socket,
+  roomId: string,
+  userId: string | number
+) {
   const room = rooms[roomId];
   if (!room) return;
 
   const leavingUser = room.users.find((u) => u.id === userId);
+
   room.users = room.users.filter((u) => u.id !== userId);
 
   socket.leave(roomId);
 
-  if (leavingUser) {
+  if (leavingUser){
     socket.to(roomId).emit("webrtc:user-left", {
       socketId: leavingUser.socketId,
       userId
     });
+
+    if (room.dbSessionId){
+      const sameUserStillPresent = room.users.some(
+        (u) => u.dbUserId === leavingUser.dbUserId
+      );
+
+      if (!sameUserStillPresent){
+        await helpers.deleteSessionMember(
+          room.dbSessionId,
+          leavingUser.dbUserId
+        );
+      }
+    }
   }
 
-  if (room.hostId === userId) {
+  if (room.hostId === userId){
     room.hostId = room.users[0]?.id || null;
 
     room.users.forEach((u) => {
-        u.isHost = u.id === room.hostId;
+      u.isHost = u.id === room.hostId;
 
-        if (u.isHost) {
+      if (u.isHost){
         u.isForceMuted = false;
 
         io.to(u.socketId).emit("voice:force-muted", {
-            targetUserId: u.id,
-            muted: false
+          targetUserId: u.id,
+          muted: false
         });
-        }
+      }
     });
   }
 
-  if (room.users.length === 0) {
+  if (room.users.length === 0){
+    if (room.dbSessionId){
+      await helpers.deleteSession(room.dbSessionId);
+    }
+
     delete rooms[roomId];
     providingListofSessions();
     return;
@@ -336,6 +419,9 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 
 const frontEndUrl = process.env.FRONTEND_URL;
+if (!frontEndUrl){
+  throw new Error('FrontendURL must be set in .env');
+}
 var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 
 app.get('/auth/spotify', function(req, res) {
@@ -365,7 +451,8 @@ app.get('/auth/spotify/callback', async function(req, res) {
       querystring.stringify({
         error: 'state_mismatch'
       }));
-  } else {
+  }
+
     var authOptions = {
       url: 'https://accounts.spotify.com/api/token',
       form: {
@@ -375,11 +462,11 @@ app.get('/auth/spotify/callback', async function(req, res) {
       },
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + (new Buffer.from(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64'))
       },
       json: true
     };
-  }
+  
 
   try {
     const tokenResponse = await axios.post(authOptions.url, authOptions.form, {headers: authOptions.headers})
@@ -394,6 +481,10 @@ app.get('/auth/spotify/callback', async function(req, res) {
 
     const user = await helpers.insertUser('spotify', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
+    if (!user) {
+      console.error("User was unable to save");
+      return res.status(500).send("Failed to save user");
+    }
     const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
@@ -468,13 +559,25 @@ app.get('/auth/youtube/callback', async function(req, res) {
 
     const user = await helpers.insertUser('youtube', email, account_id, display_name, avatar_url, access_token, refresh_token, token_expires_at)
     console.log('saved user:', user);
+    if (!user) {
+      console.error("User was unable to save");
+      return res.status(500).send("Failed to save user");
+    }
     const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
   catch(err) {
-    const detail = err.response?.data || err.message;
-    console.error('YouTube auth error:', detail);
-    res.status(500).send("Token exchange failed: " + JSON.stringify(detail));
+    if (axios.isAxiosError(err)){
+      const detail = err.response?.data || err.message;
+      console.error('YouTube auth error:', detail);
+      res.status(500).send("Token exchange failed: " + JSON.stringify(detail));
+
+    }
+    else {
+      res.status(500).send("Token exchange failed: ");
+
+    }
+    
   }
 });
 
@@ -486,7 +589,13 @@ app.get("/api/profile", async function(req,res) {
       error: "User not valid."
     })
   }
-    const user = await helpers.getUserById(idOfUser);
+    const userId = Number(idOfUser);
+    if(Number.isNaN(userId)){
+      return res.status(400).json({
+      error: "User not valid."
+      })
+    }
+    const user = await helpers.getUserById(userId);
 
     if (!user) {
       return res.status(404).json({error:"Couldn't find the user."});
@@ -514,7 +623,13 @@ app.get('/api/playlists', async function(req, res) {
   }
 
   try {
-    const user = await helpers.getUserById(userId);
+    const userIdN = Number(userId);
+    if(Number.isNaN(userIdN)){
+      return res.status(400).json({
+      error: "User not valid."
+      })
+    }
+    const user = await helpers.getUserById(userIdN);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -526,7 +641,7 @@ app.get('/api/playlists', async function(req, res) {
         headers: { Authorization: `Bearer ${user.access_token}` }
       });
 
-      const playlists = response.data.items.map((item) => ({ id: item.id, name: item.name }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name }));
       return res.json({ platform: 'spotify', playlists });
     }
 
@@ -536,14 +651,21 @@ app.get('/api/playlists', async function(req, res) {
         headers: { Authorization: `Bearer ${user.access_token}` }
       });
 
-      const playlists = response.data.items.map((item) => ({ id: item.id, name: item.snippet.title }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.snippet.title }));
       return res.json({ platform: 'youtube', playlists });
     }
 
     return res.status(400).json({ error: 'Unsupported platform' });
   } catch (err) {
-    const detail = err.response?.data || err.message;
-    console.error('Playlists error:', detail);
+    if (axios.isAxiosError(err)){
+      const detail = err.response?.data || err.message;
+      console.error('Playlists error:', detail);
+
+    }
+    else {
+      console.error('Playlists error:', err);
+    }
+    
     res.status(500).json({ error: 'Could not fetch playlists' });
   }
 });

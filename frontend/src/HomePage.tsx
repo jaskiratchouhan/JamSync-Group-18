@@ -91,10 +91,17 @@ function makeRandomName() {
 }
 
 export default function HomePage() {
-  const [user] = useState(makeRandomUser);
+  //const [user] = useState(makeRandomUser);
   const params = new URLSearchParams(window.location.search);
   const roomFromUrl = params.get("room");
   const userId = params.get("userId");
+  const guestId = params.get("guest_id");
+  const dbUserId = Number(userId ?? guestId);
+
+  const [user] = useState(() => ({
+    ...makeRandomUser(),
+    dbUserId
+  }));
 
   const [roomInput, setRoomInput] = useState(roomFromUrl ?? "");
   const [currentActiveRoomID, setCurrentActiveRoomID] = useState<string | null>(roomFromUrl);
