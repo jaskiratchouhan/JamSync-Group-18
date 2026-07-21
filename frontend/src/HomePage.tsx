@@ -26,7 +26,7 @@ type Session = {
 
 
 
-const socket = io("http://localhost:3001");
+const socket = io("http://127.0.0.1:3001");
 
 const BACKEND_URL = "http://127.0.0.1:3001";
 
@@ -115,10 +115,10 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect (() => {
-    if (!userId) return;
+    // if (!userId) return;
 
     (async () => {
-    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`)
+    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`, {credentials: 'include'})
       if (!res.ok) {
         throw new Error("Something went wrong. Could not load the user profile.");
       }
@@ -129,7 +129,7 @@ export default function HomePage() {
 
       
     });
-}, [userId]);
+}, []);
   useEffect(() => {
     socket.emit("sessions:getAll");
 
@@ -142,9 +142,9 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    
 
-    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`)
+    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`, {credentials: 'include'})
       .then((res) => {
         if (!res.ok) throw new Error("Could not load playlists");
         return res.json();
@@ -154,7 +154,7 @@ export default function HomePage() {
         setPlaylists(data.playlists);
       })
       .catch(() => {});
-  }, [userId]);
+  }, []);
 
   const roomInfo = currentActiveRoomID || makingRoom;
 
