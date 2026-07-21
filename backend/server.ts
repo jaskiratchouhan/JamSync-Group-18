@@ -1,25 +1,68 @@
 import express, {Request, Response} from 'express';
 import axios from 'axios';
-import {helpers, User, Session, SessionMember} from './db.js';
+import {helpers, User, Session, SessionMember} from './db.ts';
 import querystring from 'querystring'
 import http from "http";
 import cors from "cors";
 import { Server, Socket} from "socket.io";
+import {pool} from "./db";
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import dotenv from 'dotenv';
 dotenv.config();
 
 // (async () => {
 //     await helpers.init();
 // })();
+declare module 'express-session' {
+  interface SessionData {
+    user?: { 
+      userId: string; 
+       };
+  }
+}
 
 const app = express();
-app.use(cors());
+const frontEndUrl = process.env.FRONTEND_URL;
+if (!frontEndUrl){
+  throw new Error('FrontendURL must be set in .env');
+}
+
+app.use(cors({
+  origin: frontEndUrl,
+  credentials: true // allows credentials like my cookies
+}
+));
+
+const sessionSecret = process.env.SECRET;
+if (!sessionSecret){
+  throw new Error('Secret is not set in .env');
+}
+const pgSession = connectPgSimple(session);
+
+app.use(session({
+  store: new pgSession({
+    pool: pool,
+    tableName: 'login_sessions',
+    createTableIfMissing: true,
+  }),
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 60 * 60 * 1000, // 1 hr
+    httpOnly: true,
+    secure: false, // bc sent over http (our vm link)
+    sameSite: 'lax' // cookie sent when a user clicks a regular link on your site, but blocked if another website tries to use our site secretly
+  }
+
+}))
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "http://127.0.0.1:5173",
     methods: ["GET", "POST"]
   }
 });
@@ -418,10 +461,7 @@ const client_id = process.env.CLIENT_ID;
 
 const client_secret = process.env.CLIENT_SECRET;
 
-const frontEndUrl = process.env.FRONTEND_URL;
-if (!frontEndUrl){
-  throw new Error('FrontendURL must be set in .env');
-}
+
 var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 
 app.get('/auth/spotify', function(req, res) {
@@ -485,6 +525,8 @@ app.get('/auth/spotify/callback', async function(req, res) {
       console.error("User was unable to save");
       return res.status(500).send("Failed to save user");
     }
+    // sets user id into the session object
+    req.session.user = {userId: String(user.id)}
     const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
@@ -497,6 +539,7 @@ app.get('/auth/spotify/callback', async function(req, res) {
 app.get("/auth/guest", async function(req,res) {
   try{
     const user = await helpers.insertBasicUser();
+    req.session.user = {userId: String(user.id)}
     res.redirect(`${frontEndUrl}/guest-welcome?guest_id=${user.id}&guest_name=${encodeURIComponent(user.display_name)}`)
   }
   catch(err){
@@ -563,6 +606,7 @@ app.get('/auth/youtube/callback', async function(req, res) {
       console.error("User was unable to save");
       return res.status(500).send("Failed to save user");
     }
+    req.session.user = {userId: String(user.id)}
     const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
     res.redirect(frontPageUrl);
   }
@@ -582,7 +626,10 @@ app.get('/auth/youtube/callback', async function(req, res) {
 });
 
 app.get("/api/profile", async function(req,res) {
-  const idOfUser = req.query.userId;
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const idOfUser = req.session.user.userId;
 
   if(!idOfUser) {
     return res.status(400).json({
@@ -616,7 +663,11 @@ app.get("/api/profile", async function(req,res) {
 
 app.get('/api/playlists', async function(req, res) {
 
-  const userId = req.query.userId;
+   if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const userId = req.session.user.userId;
+  // const userId = req.query.userId;
 
   if (!userId) {
     return res.status(400).json({ error: 'Missing userId' });
