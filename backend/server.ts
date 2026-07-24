@@ -722,6 +722,22 @@ app.get('/api/playlists', async function(req, res) {
 });
 
 
+app.post('/logout', (req: Request, res: Response) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Could not log out' });
+    }
+    res.clearCookie('connect.sid', {
+      path: '/',
+      httpOnly: true,
+      secure: false, 
+      sameSite: 'lax'
+    });
+    return res.json({ ok: true });
+  });
+});
+
+
 server.listen(3001, () => {
   console.log("Backend running on http://localhost:3001");
 });

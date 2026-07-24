@@ -62,8 +62,8 @@ button:disabled {
   padding-right: 1.8rem;
   border-radius: 38px;
   justify-content: flex-end;
-  width: 80%;
-  height: 60%;
+  width: 85%;
+  height: 65%;
   margin-left: auto;
   
   
@@ -357,3 +357,30 @@ button:disabled {
   font-size:25px;
 }
 
+.logoutContainer{
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-self: flex-start;
+  margin-top: 0.8rem;
+  margin-right: 0.4rem;
+  margin-left: 1rem;
+ 
+}
+.logoutContainer p{
+  transition: all 0.3s ease-in-out;
+}
+.logoutContainer p:hover{
+
+  cursor: pointer;
+  
+}
+
+
+.logoutContainer button {
+  position: absolute;
+  top: 60px;
+  left: -21px;
+  font-size: 15px;
+  
+}
