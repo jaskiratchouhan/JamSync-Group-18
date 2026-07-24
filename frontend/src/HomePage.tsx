@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from "react";
-
+import toast from 'react-hot-toast';
 
 import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { io} from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 import "./App.css";
 
 type Profile = {
@@ -26,7 +27,7 @@ type Session = {
 
 
 
-const socket = io("http://localhost:3001");
+const socket = io("http://127.0.0.1:3001");
 
 const BACKEND_URL = "http://127.0.0.1:3001";
 
@@ -97,6 +98,7 @@ export default function HomePage() {
   const userId = params.get("userId");
   const guestId = params.get("guest_id");
   const dbUserId = Number(userId ?? guestId);
+  const navigate = useNavigate();
 
   const [user] = useState(() => ({
     ...makeRandomUser(),
@@ -114,11 +116,13 @@ export default function HomePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect (() => {
-    if (!userId) return;
+    // if (!userId) return;
 
     (async () => {
-    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`)
+    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`, {credentials: 'include'})
       if (!res.ok) {
         throw new Error("Something went wrong. Could not load the user profile.");
       }
@@ -129,7 +133,7 @@ export default function HomePage() {
 
       
     });
-}, [userId]);
+}, []);
   useEffect(() => {
     socket.emit("sessions:getAll");
 
@@ -142,9 +146,9 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    
 
-    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`)
+    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`, {credentials: 'include'})
       .then((res) => {
         if (!res.ok) throw new Error("Could not load playlists");
         return res.json();
@@ -154,7 +158,7 @@ export default function HomePage() {
         setPlaylists(data.playlists);
       })
       .catch(() => {});
-  }, [userId]);
+  }, []);
 
   const roomInfo = currentActiveRoomID || makingRoom;
 
@@ -173,6 +177,35 @@ export default function HomePage() {
             shouldCreateRoom={makingRoom}
             />
     );
+  }
+
+  async function handleLogout(){
+
+    try{
+      const res = await fetch(`${BACKEND_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!res.ok){
+        throw new Error('Logout failed');
+      }
+
+      setProfile(null);
+      setPlatform(null);
+      setPlaylists([]);
+
+      toast.success("Logged out!");
+      navigate('/');
+      
+      
+    }
+    catch(err){
+      console.error(err);
+      toast.error("Couldn't log out! Please try again");
+
+    }
+
   }
 
   const sessionsList = [];
@@ -199,8 +232,13 @@ export default function HomePage() {
           <p>Platform: {profile.platform}</p>
         </div>
           {profile.avatar_url && (
-          <img src={profile.avatar_url} width={72} />
-        
+          <>
+            <img src={profile.avatar_url} width={72} />
+            <div className = "logoutContainer">
+              <p onClick = {()=> setMenuOpen((curr)=> !curr)}> &nbsp; {menuOpen ?  (<span style= {{color: "white",fontSize: "22px" }}>▼</span>) : (<span style = {{fontSize: "24px"}} >⚙️</span>) }</p>
+              {menuOpen && (<button onClick = {handleLogout} >Logout</button>)}
+            </div>
+          </>
         )
         }
         
@@ -208,7 +246,10 @@ export default function HomePage() {
     )
   } else {
     profileArea = (
-      <p>Guest</p>
+      <>
+        <p>Guest</p>
+        <p onClick = {handleLogout}> &nbsp; &#9668;</p>
+      </>
     )
   }
 

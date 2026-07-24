@@ -6,7 +6,7 @@ const user = process.env.PGUSER;
 const psw = process.env.PGPASSWORD;
 const db = process.env.PGDATABASE;
 const client_id = process.env.CLIENT_ID;
-const pool= new Pool({connectionString: `postgresql://${user}:${psw}@localhost:5432/${db}`});
+export const pool= new Pool({connectionString: `postgresql://${user}:${psw}@localhost:5432/${db}`});
 
 export interface User{
     id: number;

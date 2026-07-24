@@ -40,7 +40,7 @@ type Props = {
   shouldCreateRoom: boolean;
 };
 
-const socket: Socket = io("http://localhost:3001");
+const socket: Socket = io("http://127.0.0.1:3001");
 
 export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [roomError, setRoomError] = useState("");
