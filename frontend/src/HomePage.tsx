@@ -353,16 +353,20 @@ export default function HomePage() {
                 {profileArea}
                 </section>
                 </div>
+                <div className = "friends">
+
                 
+                <h2>Add friends</h2>
                 <input value = {searchInput} onChange={(e)=> setSearchInput(e.target.value)} placeholder = "Enter display name" />
                   <button onClick ={grabSearchResults}>Search</button>
                   {searchResults.map((res)=>(
                     <div key = {res.id} className = "searchRes">
                       {res.avatar_url && <img src = {res.avatar_url} />}
-                      <p>{res.display_name} {res.platform}</p>
+                      <p>{res.display_name} on {res.platform}</p>
                       <button onClick = {() => sendFriendRequest(res.id)}>Send Friend Request</button>
                     </div>
                     ))}
+                  </div>
                   
                   
                   <div className = "pending-requests">

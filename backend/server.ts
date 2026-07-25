@@ -34,6 +34,8 @@ app.use(cors({
 }
 ));
 
+app.use(express.json());
+
 const sessionSecret = process.env.SECRET;
 if (!sessionSecret){
   throw new Error('Secret is not set in .env');
