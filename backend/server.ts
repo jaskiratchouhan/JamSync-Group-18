@@ -721,6 +721,44 @@ app.get('/api/playlists', async function(req, res) {
   }
 });
 
+app.post('/friends/request', async function(req,res) {
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+
+  const requester_id = Number(req.session.user.userId);
+  const { requestee_id} = req.body;
+  if (!requestee_id){
+    return res.status(400).json({error: "Need requestee_id"});
+  }
+
+  const friendReq = await helpers.sendFriendRequest(requester_id, requestee_id);
+  return res.json(friendReq);
+
+  
+})
+app.get('/users/search', async function(req,res){
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const query = req.query.name;
+  if (!query || typeof query!= 'string'){
+    return res.status(400).json();
+  }
+  const results = await helpers.getUserByDisplayName(query);
+  return res.json(results);
+
+})
+
+app.get('/friends/requests', async function(req,res){
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const userId = Number(req.session.user.userId)
+  const result = await helpers.grabPendingRequests(userId);
+  return res.json(result);
+})
+
 
 app.post('/logout', (req: Request, res: Response) => {
   req.session.destroy((err) => {

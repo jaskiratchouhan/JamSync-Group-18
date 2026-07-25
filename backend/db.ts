@@ -38,6 +38,14 @@ export interface SessionMember {
     joined_at: Date;
 }
 
+export interface Friend {
+    id: number;
+    requester_id: number;
+    requestee_id: number;
+    status: string;
+    created_at: Date;
+}
+
 
 const helpers = {
     //  init: async()=> {
@@ -249,6 +257,64 @@ const helpers = {
         }
 
         return result;
+    },
+
+    async sendFriendRequest(requester_id: number, requestee_id: number): Promise<Friend | undefined>{
+        const q = `INSERT INTO friends(requester_id, requestee_id, status)
+        VALUES ($1, $2, 'pending')
+        RETURNING *`;
+        try {
+            const result = await pool.query(q,[requester_id, requestee_id]);
+            return result.rows[0];
+        }
+        catch(err){
+            console.error('Friend request failed to send. Please try again later.', err);
+        }
+    },
+    async grabPendingRequests(user_id : number){
+        const q = `SELECT friends.id, friends.requester_id, friends.created_at, users.display_name, users.avatar_url
+        FROM friends
+        JOIN users ON friends.requester_id = users.id
+        WHERE friends.requestee_id = ($1) AND friends.status = 'pending'`;
+
+        const result = await pool.query(q, [user_id]);
+        return result.rows;
+
+    },
+    async updateResponseToRequest(id: number, requestee_id: number, status: 'accepted' | 'declined'){
+        const q = `UPDATE FRIENDS
+        SET status = $1
+        WHERE id = ($2) AND requestee_id = ($3)
+        RETURNING *`;
+        const result = await pool.query(q, [status, id,requestee_id]);
+        return result.rows[0];
+        
+    },
+    async getFriends(user_id: number){
+        const q = `SELECT friends.id, friends.requester_id, friends.requestee_id,
+        user1.display_name AS requester_name, user1.avatar_url AS requester_avatar,
+        user2.display_name AS requestee_name, user2.avatar_url AS requestee_avatar
+        FROM friends
+        JOIN users AS user1 ON friends.requester_id = user1.id
+        JOIN users AS user2 ON friends.requestee_id = user2.id 
+        WHERE (friends.requester_id = ($1) OR friends.requestee_id = ($1)) AND friends.status = 'accepted' `;
+
+        const result = await pool.query(q, [user_id]);
+
+        return result.rows.map((row) => {
+            return {
+                friendshipId: row.id,
+                friendID: row.requester_id == user_id ? row.requestee_id : row.requester_id,
+                display_name : row.requester_id == user_id ? row.requestee_name : row.requester_name,
+                avatar_url: row.requester_id == user_id ? row.requestee_avatar : row.requester_avatar,
+            };
+        });
+
+    },
+    async getUserByDisplayName(display_name: string){
+        const q = `SELECT * FROM users WHERE display_name = ($1) LIMIT 10`;
+        const result = await pool.query(q, [display_name]);
+        return result.rows;
     }
 
 

@@ -99,6 +99,7 @@ export default function HomePage() {
   const guestId = params.get("guest_id");
   const dbUserId = Number(userId ?? guestId);
   const navigate = useNavigate();
+  const [friendName, setFriendName] = useState("");
 
   const [user] = useState(() => ({
     ...makeRandomUser(),
@@ -117,6 +118,16 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  type searchResult = {
+    id: number;
+    display_name: string;
+    avatar_url: string | null;
+    platform: string | null;
+
+  }
+
+  const [searchInput, setSearchInput] = useState("");
+  const [searchResults, setSearchResults]= useState<searchResult[]>([]);
 
   useEffect (() => {
     // if (!userId) return;
@@ -158,7 +169,40 @@ export default function HomePage() {
         setPlaylists(data.playlists);
       })
       .catch(() => {});
+
   }, []);
+
+ 
+
+ 
+  type pendingRequest = {
+    id: number;
+    requester_id: number;
+    created_at: string;
+    display_name: string;
+    avatar_url: string | null;
+  }
+  const[pendingRequests, setPendingRequests] = useState<pendingRequest[]>([]);
+  
+   useEffect(() =>{
+    async function grabPendingRequests(){
+    try{
+      const response = await fetch(`${BACKEND_URL}/friends/requests`, {credentials: 'include'});
+      if (!response.ok){
+        return;
+      }
+      const data = await response.json();
+      setPendingRequests(data);
+
+    }
+    catch(err){
+      console.error(err);
+    }
+  }
+    grabPendingRequests();
+  }, []);
+
+   
 
   const roomInfo = currentActiveRoomID || makingRoom;
 
@@ -253,6 +297,48 @@ export default function HomePage() {
     )
   }
 
+  async function grabSearchResults(){
+    try {
+      const result = new URLSearchParams({name: searchInput});
+      const response = await fetch(`${BACKEND_URL}/users/search?${result}`, {credentials: 'include'});
+      if (!response.ok){
+        return;
+      }
+      const data = await response.json();
+      setSearchResults(data);
+    }
+    catch(error){
+      console.error(error);
+    }
+  }
+  
+
+  
+  async function sendFriendRequest(requesteeId: number){
+    try {
+      const response = await fetch(`${BACKEND_URL}/friends/request`,{
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({requestee_id: requesteeId})
+        
+      });
+
+      
+      if (!response.ok){
+        toast.error("Something went wrong");
+        return;
+      }
+      toast.success("Friend request sent!");
+      setFriendName("");
+    }
+    catch(err){
+      console.error(err);
+      toast.error("Something went wrong");
+    }
+
+  }
+  
   return (
     <main className="home-page">
       <div className="top-portion">
@@ -267,8 +353,33 @@ export default function HomePage() {
                 {profileArea}
                 </section>
                 </div>
+                
+                <input value = {searchInput} onChange={(e)=> setSearchInput(e.target.value)} placeholder = "Enter display name" />
+                  <button onClick ={grabSearchResults}>Search</button>
+                  {searchResults.map((res)=>(
+                    <div key = {res.id} className = "searchRes">
+                      {res.avatar_url && <img src = {res.avatar_url} />}
+                      <p>{res.display_name} {res.platform}</p>
+                      <button onClick = {() => sendFriendRequest(res.id)}>Send Friend Request</button>
+                    </div>
+                    ))}
+                  
+                  
+                  <div className = "pending-requests">
+                    <h2>Friend Requests {pendingRequests.length}</h2>
+                    {pendingRequests.map((req)=> (
+                      <div key = {req.id} className="requests"> 
+                      {req.avatar_url && <img src = {req.avatar_url} />}
+                      <p>{req.display_name}</p>
+                      <button>Accept</button>
+                      <button>Decline</button>
+                      </div>
+                    ))}
+                  </div>
             
                 <div className="bottom-portion">
+
+                  
             
             {platform && (
         <section className="playlists">
