@@ -42,7 +42,7 @@ if (!sessionSecret){
 }
 const pgSession = connectPgSimple(session);
 
-app.use(session({
+const sessionSetUp = (session({
   store: new pgSession({
     pool: pool,
     tableName: 'login_sessions',
@@ -59,15 +59,21 @@ app.use(session({
   }
 
 }))
+app.use(sessionSetUp);
+
+
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
     origin: "http://127.0.0.1:5173",
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
+
+io.engine.use(sessionSetUp);
 
 type RoomUser = {
   id: string | number;
@@ -97,6 +103,8 @@ type Room = {
 };
 
 const rooms: Record<string, Room> = {};
+// storing userID of active users
+const onlineUsers = new Set<number>();
 
 function getRoom(roomId: string): Room {
   if (!rooms[roomId]) {
@@ -377,6 +385,16 @@ io.on("connection", (socket) => {
     });
   });
 
+  // socket checking if users are online
+
+  const session = (socket.request as any).session;
+  const userID = session?.user?.userId ? Number(session.user.userId) : null;
+  console.log("socket connected, userID:", userID);
+  if (userID){
+    onlineUsers.add(userID);
+    io.emit("status:update", {userID, online: true})
+  }
+
   socket.on("disconnect", async () => {
     console.log("Disconnected:", socket.id);
 
@@ -387,6 +405,11 @@ io.on("connection", (socket) => {
       if (leavingUser) {
         await leaveRoom(socket, roomId, leavingUser.id);
       }
+    }
+
+    if (userID){
+      onlineUsers.delete(userID);
+      io.emit("status:update", {userID, online: false});
     }
   });
 });
@@ -455,6 +478,7 @@ async function leaveRoom(
   io.to(roomId).emit("room:update", room);
   providingListofSessions();
 }
+
 
 // auth
 
@@ -759,6 +783,46 @@ app.get('/friends/requests', async function(req,res){
   const userId = Number(req.session.user.userId)
   const result = await helpers.grabPendingRequests(userId);
   return res.json(result);
+})
+
+app.patch('/friends/requests/:id/accept', async function(req, res){
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const id = Number(req.params.id);
+  const userId = Number(req.session.user.userId);
+  const update = await helpers.updateResponseToRequest(id, userId, 'accepted');
+  if (!update){
+    return res.status(400).json({error: "Accepting request failed. Request not found"});
+  }
+  return res.json(update); 
+})
+
+app.patch('/friends/requests/:id/decline', async function(req, res){
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const id = Number(req.params.id);
+  const userId = Number(req.session.user.userId);
+  const update = await helpers.updateResponseToRequest(id, userId, 'declined');
+  if (!update){
+    return res.status(400).json({error: "Declining request failed. Request not found"});
+  }
+  return res.json(update); 
+})
+
+app.get('/friends/grabAll', async function(req,res) {
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+
+  const response = await helpers.getFriends(Number(req.session.user.userId));
+  if (!response){
+    return res.status(400).json({error: "Failed to grab users friends"});
+  }
+
+  const usersWithStatus = response.map((friend: any) => ({...friend, online: onlineUsers.has(friend.friendID)}));
+  return res.json(usersWithStatus);
 })
 
 
