@@ -104,7 +104,7 @@ type Room = {
 
 const rooms: Record<string, Room> = {};
 // storing userID of active users
-const onlineUsers = new Set<number>();
+const onlineUsers = new Map<number, string>();
 
 function getRoom(roomId: string): Room {
   if (!rooms[roomId]) {
@@ -391,7 +391,7 @@ io.on("connection", (socket) => {
   const userID = session?.user?.userId ? Number(session.user.userId) : null;
   console.log("socket connected, userID:", userID);
   if (userID){
-    onlineUsers.add(userID);
+    onlineUsers.set(userID, socket.id);
     io.emit("status:update", {userID, online: true})
   }
 
@@ -754,11 +754,16 @@ app.post('/friends/request', async function(req,res) {
 
   const requester_id = Number(req.session.user.userId);
   const { requestee_id} = req.body;
-  if (!requestee_id){
-    return res.status(400).json({error: "Need requestee_id"});
+  if (!requestee_id || requestee_id === requester_id){
+    return res.status(400).json({error: "Need to input a display name thats not empty or not your own"});
   }
 
   const friendReq = await helpers.sendFriendRequest(requester_id, requestee_id);
+  const recievingRequestSocketID = onlineUsers.get(requestee_id);
+  const senderDetails = await helpers.getUserById(requester_id);
+  if (recievingRequestSocketID){
+    io.to(recievingRequestSocketID).emit("friend:newRequest", {id: friendReq?.id, requester_id: friendReq?.requester_id, created_at: friendReq?.created_at, display_name: senderDetails.display_name, avatar_url: senderDetails.avatar_url});
+  }
   return res.json(friendReq);
 
   
@@ -769,7 +774,7 @@ app.get('/users/search', async function(req,res){
   }
   const query = req.query.name;
   if (!query || typeof query!= 'string'){
-    return res.status(400).json();
+    return res.status(400).json({error: "You must enter an input"});
   }
   const results = await helpers.getUserByDisplayName(query);
   return res.json(results);

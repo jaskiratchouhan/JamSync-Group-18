@@ -99,7 +99,6 @@ export default function HomePage() {
   const guestId = params.get("guest_id");
   const dbUserId = Number(userId ?? guestId);
   const navigate = useNavigate();
-  const [friendName, setFriendName] = useState("");
 
   const [user] = useState(() => ({
     ...makeRandomUser(),
@@ -118,6 +117,7 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [panelOpen, setPanel] = useState<string | null>(null);
   type searchResult = {
     id: number;
     display_name: string;
@@ -181,6 +181,16 @@ export default function HomePage() {
     
   },[])
 
+  useEffect(()=> {
+    function handleNewRequest(newReq: pendingRequest){
+      setPendingRequests((prev) => [...prev,newReq]);
+    }
+    socket.on("friend:newRequest", handleNewRequest);
+    return () => {
+      socket.off("friend:newRequest", handleNewRequest); 
+    }
+  }, []);
+
   
 
 
@@ -240,7 +250,6 @@ export default function HomePage() {
         return;
       }
       const data = await response.json();
-      console.log("Fetched friends", data);
       setAllFriends(data);
 
     }
@@ -317,6 +326,7 @@ export default function HomePage() {
   let profileArea;
   if (profile) {
     profileArea = (
+      <>
       <div className="profile_Area"> 
         
       
@@ -335,8 +345,15 @@ export default function HomePage() {
           </>
         )
         }
+
+        
         
       </div>
+      <div style = {{marginTop: "0.7rem"}}>
+        <button style = {{marginRight: "0.8rem"}}onClick = {() => setPanel("requests")}>Friend Requests</button>
+        <button onClick = {() => {setPanel("all"); grabFriends()}}>View All Friends</button>
+      </div>
+      </>
     )
   } else {
     profileArea = (
@@ -352,7 +369,8 @@ export default function HomePage() {
       const result = new URLSearchParams({name: searchInput});
       const response = await fetch(`${BACKEND_URL}/users/search?${result}`, {credentials: 'include'});
       if (!response.ok){
-        toast.error("Unable to proceed with your request at this time.")
+        const data = await response.json();
+        toast.error(data.error);
         return;
       }
       const data = await response.json();
@@ -366,6 +384,11 @@ export default function HomePage() {
 
   
   async function sendFriendRequest(requesteeId: number){
+    const alreadyFriends = allFriends.some((friend) => friend.friendID === requesteeId);
+    if (alreadyFriends){
+      toast.error("You're already friends");
+      return;
+    }
     try {
       const response = await fetch(`${BACKEND_URL}/friends/request`,{
         method: 'POST',
@@ -377,7 +400,8 @@ export default function HomePage() {
 
       
       if (!response.ok){
-        toast.error("Something went wrong");
+        const data = await response.json();
+        toast.error(data.error);
         return;
       }
       toast.success("Friend request sent!");
@@ -386,7 +410,7 @@ export default function HomePage() {
     }
     catch(err){
       console.error(err);
-      toast.error("Something went wrong");
+      toast.error(`Something went wrong: ${err}`);
     }
 
   }
@@ -437,42 +461,72 @@ export default function HomePage() {
                           <p style = {{color: "white"}}>{friend.display_name} 🟢 </p>
                         </div>
                       ))}
-                    </div>)}
+                      </div>)}
                   </div>
+              <div className = "col-3 friendContainer">
+                <div className = "addFriendContainer">
+                    <h4 style = {{color: "#eae1d1"}}>Add friends</h4>
+                    <div className = "searching" style = {{display: "flex", gap: "6px"}}>
+                      <input value = {searchInput} onChange={(e)=> setSearchInput(e.target.value)} placeholder = "Enter display name" />
+                      <button onClick ={grabSearchResults}>Search</button>
+                    </div>
+                      {searchResults.map((res)=>(
+                        <>
+                        <div key = {res.id} className = "searchRes">
+                          <div style = {{display: "flex", alignItems:"center", gap: "8px"}}>
+                            {res.avatar_url && <img src = {res.avatar_url} />}
+                            <div style = {{display: "flex", flexDirection: "column", width: "100%", flex: 1, lineHeight: 0.3}}>
+                              <p style = {{marginLeft: "0.4rem", whiteSpace: "nowrap"}}>{res.display_name} </p>
+                              <p style = {{marginLeft: "0.4rem", whiteSpace: "nowrap"}}>from <span style = {{fontWeight: 600, color: "white"}}>{res.platform} </span> </p>
+                            </div>
+                            
+                          </div>
+                          
+                          <button style = {{marginLeft: "2rem"}}onClick = {() => sendFriendRequest(res.id)}>Send</button>
+                          
+                        </div>                        
+                        </>
+                        ))}
+                        
+                    </div>
+                    
+              </div>
+                
+            </div>
 
-                <div className = "col-3 addFriendContainer">
-                <h3 style = {{color: "#eae1d1"}}>Add friends</h3>
-                <input value = {searchInput} onChange={(e)=> setSearchInput(e.target.value)} placeholder = "Enter display name" />
-                  <button onClick ={grabSearchResults}>Search</button>
-                  {searchResults.map((res)=>(
-                    <div key = {res.id} className = "searchRes">
-                      {res.avatar_url && <img src = {res.avatar_url} />}
-                      <p>{res.display_name} on {res.platform}</p>
-                      <button onClick = {() => sendFriendRequest(res.id)}>Send Friend Request</button>
-                    </div>
-                    ))}
-                  </div>
-                  </div>
-                  
-                  
-                  <div className = "pending-requests">
-                    <h2>Friend Requests {pendingRequests.length}</h2>
-                    {pendingRequests.map((req)=> (
-                      <div key = {req.id} className="requests"> 
-                      {req.avatar_url && <img src = {req.avatar_url} />}
-                      <p style= {{color: "white"}}>{req.display_name}</p>
-                      <button onClick= {()=> respondtoRequest(req.id, "accept")}>Accept</button>
-                      <button onClick= {()=> respondtoRequest(req.id, "decline")}>Decline</button>
+              <div className = "friendPanel">
+                
+                  {panelOpen == "requests" && (   
+                      <div className = "pending-requests">
+                        <h3>Friend Requests: {pendingRequests.length}</h3>
+                        {pendingRequests.map((req)=> (
+                          <div key = {req.id} className="requests"> 
+                            {req.avatar_url && <img src = {req.avatar_url} />}
+                            <p style= {{color: "white"}}>{req.display_name}</p>
+                            <button onClick= {()=> respondtoRequest(req.id, "accept")}>Accept</button>
+                            <button onClick= {()=> respondtoRequest(req.id, "decline")}>Decline</button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <button onClick={(grabFriends)}>View Friends List</button>
-                  {allFriends.map((friend)=>(
-                    <div className = "friendsCard" key = {friend.friendID}>
-                    <p style = {{color: "white"}}>{friend.display_name}</p>
-                    <img src = {friend.avatar_url} />
-                    </div>
-                  ))}
+                      )}
+
+                    {panelOpen == "all" && (
+                      <>
+                      <p className = "friendsListP" style = {{color: "white"}}>Friends List</p>
+                      <div className = " row allFriends">
+                        
+                      
+                        {allFriends.map((friend)=>(
+                          <div className = "friendsCard  col-lg-4" key = {friend.friendID}>
+                            <p style = {{color: "white"}}>{friend.display_name}</p>
+                            <img style = {{width: "50px", height: "50px"}}src = {friend.avatar_url} />
+                          </div>
+                        ))}
+                        </div>
+                       </>
+                      )}
+                      
+                </div>
                   
 
 
