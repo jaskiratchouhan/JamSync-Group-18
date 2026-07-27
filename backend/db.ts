@@ -155,6 +155,10 @@ const helpers = {
         const result = await pool.query(q, [id]);
         return result.rows[0];
     },
+    async deleteUser(id: number){
+        const q = `DELETE FROM users WHERE id = $1`;
+        await pool.query(q,[id]);
+    },
     // init: async(): Promise<void> => {
     //     const q = `CREATE TABLE IF NOT EXISTS User(
     //     id SERIAL PRIMARY KEY,
@@ -315,8 +319,12 @@ const helpers = {
         const q = `SELECT * FROM users WHERE display_name = ($1) LIMIT 10`;
         const result = await pool.query(q, [display_name]);
         return result.rows;
-    }
+    },
 
+    async deleteFriendRequest(id: number){
+        const q = `DELETE FROM friends WHERE id = $1`;
+        await pool.query(q,[id]);
+    }
 
 }
 
