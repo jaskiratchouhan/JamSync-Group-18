@@ -148,11 +148,29 @@ function providingListofSessions() {
     io.emit("sessions:allSessions", sessionsArray)
   }
 
+  async function providingUserSessions(userId:number) {
+    const sessions = await helpers.getUserCurrentSessions(userId);
+
+    for (const client of io.sockets.sockets.values()) {
+      if(client.data.userId ===userId) {
+        client.emit("user:sessions",sessions);
+      }
+    }
+    //socket.emit("user:sessions", sessions);
+  }
+
 
 io.on("connection", (socket) => {
   socket.on("sessions:getAll", () => {
     providingListofSessions();
   });
+
+  socket.on("user:sessions:get", async({userId}) => {
+    socket.data.userId = userId;
+
+    const sessions = await helpers.getUserCurrentSessions(userId);
+    socket.emit("user:sessions", sessions)
+  })
 
   console.log("Connected:", socket.id);
 
@@ -184,6 +202,7 @@ io.on("connection", (socket) => {
 
     await helpers.insertSessionMember(dbSession.id, user.dbUserId);
 
+    await providingUserSessions(user.dbUserId)
     room.users = room.users.filter((u) => u.id !== user.id);
 
     const newUser = makeRoomUser(user, socket, true);
@@ -218,6 +237,7 @@ io.on("connection", (socket) => {
 
     if (room.dbSessionId){
       await helpers.insertSessionMember(room.dbSessionId, user.dbUserId);
+      await providingUserSessions(user.dbUserId)
     }
 
     room.users = room.users.filter((u) => u.id !== user.id);
@@ -380,7 +400,13 @@ io.on("connection", (socket) => {
 
     for (const roomId in rooms) {
       const room = rooms[roomId];
+
+      console.log("Checking room:", roomId);
+      console.log("Current room users:", room.users);
+
       const leavingUser = room.users.find((u) => u.socketId === socket.id);
+
+      console.log("Leaving user found:", leavingUser);
 
       if (leavingUser) {
         await leaveRoom(socket, roomId, leavingUser.id);
@@ -419,6 +445,7 @@ async function leaveRoom(
           room.dbSessionId,
           leavingUser.dbUserId
         );
+        await providingUserSessions(leavingUser.dbUserId)
       }
     }
   }
@@ -720,6 +747,26 @@ app.get('/api/playlists', async function(req, res) {
     res.status(500).json({ error: 'Could not fetch playlists' });
   }
 });
+
+app.get('/api/recent_sessions', async function(req, res) {
+
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const userId = Number(req.session.user.userId);
+
+
+  try {
+    const sessions = await helpers.getUserCurrentSessions(userId)
+
+    return res.json(sessions);
+  } catch(err) {
+    console.error("Unable to get user's sessions:", err);
+    return res.status(500).json({
+      error: "Unable to get user's sessions"
+    })
+  }
+})
 
 
 app.post('/logout', (req: Request, res: Response) => {

@@ -249,6 +249,18 @@ const helpers = {
         }
 
         return result;
+    },
+
+    async getUserCurrentSessions(user_id: number) {
+        const q = `SELECT sessions.id, sessions.name, sessions.room_code, session_members.joined_at
+        FROM session_members
+        JOIN sessions ON session_members.session_id = sessions.id
+        WHERE session_members.user_id = $1
+        ORDER BY session_members.joined_at DESC LIMIT 5`;
+
+        const result = await pool.query(q, [user_id]);
+        return result.rows;
+
     }
 
 

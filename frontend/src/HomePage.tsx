@@ -36,7 +36,12 @@ type Playlist = {
   name: string;
 };
 
-
+type CurrentUsersSessions = {
+  id: number;
+  name: string;
+  room_code: string;
+  joined_at: string;
+}
 function makeRandomUser() {
   const id = crypto.randomUUID();
 
@@ -111,6 +116,7 @@ export default function HomePage() {
 
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [currentUsersSessions, setCurrentUsersSessions] = useState<CurrentUsersSessions[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [platform, setPlatform] = useState<string | null>(null);
 
@@ -159,6 +165,21 @@ export default function HomePage() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+
+    socket.emit("user:sessions:get", {
+      userId: dbUserId
+    });
+
+    socket.on("user:sessions", (sessions) => {
+    setCurrentUsersSessions(sessions);
+  });
+    return () => {
+      socket.off("user:sessions");
+    };
+
+  },[])
 
   const roomInfo = currentActiveRoomID || makingRoom;
 
@@ -215,6 +236,15 @@ export default function HomePage() {
         <p> Session: {session.id}</p>
         <p>Users: {session.users.map((user) => user.name).join()}</p>
         <button onClick={() => setCurrentActiveRoomID(session.id)}>Join</button>
+      </div>
+    )
+  }
+  const currentUserSessionsList = [];
+  for (const session of currentUsersSessions) {
+    currentUserSessionsList.push(
+      <div key={session.id}>
+        <p>{session.name}</p>
+        <p>Code: {session.room_code}</p>
       </div>
     )
   }
@@ -308,6 +338,11 @@ export default function HomePage() {
                     setCurrentActiveRoomID(trimmedRoomInput)}}}>Join Session</button>
       </div>
       </div>
+      </section>
+
+      <section>
+        <h2>Joined Sessions</h2>
+        {currentUserSessionsList}
       </section>
       
                   <section className="avail-sess">
