@@ -384,3 +384,79 @@ button:disabled {
   font-size: 15px;
   
 }
+
+.searchRes p{
+  color: white;
+}
+
+.onlineFriendsList{
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 17px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.onlineFriendsList img {
+  width: 50px;
+  height: 50px;
+}
+
+.addFriendContainer button{
+  margin-top: 1rem;
+  
+}
+
+.addFriendContainer h4{
+  font-size: 21px;
+}
+.addFriendContainer input{
+  font-size: 15px;
+  height: 80%;
+
+}
+.searching{
+  align-items: center;
+  
+}
+.searching button{
+  margin: 0;
+  
+}
+
+.searchRes{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+}
+.searchRes img{
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.pending-requests h3{
+  color: #c9963f ;
+   font-family: "Montserrat", sans-serif;
+  line-height: 1.2;
+  font-weight: 600;
+
+}
+.pending-requests button {
+  margin: 0.4rem;
+}
+.allFriends{
+  display: flex;
+}
+
+.friendsListP{
+  font-size: 40px;
+  color: white;
+  font-family: "Montserrat", sans-serif;
+  line-height: 1.2;
+  font-weight: 600;
+
+  margin-bottom: 2rem;
+}
