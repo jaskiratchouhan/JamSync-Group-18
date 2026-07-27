@@ -467,7 +467,10 @@ app.get('/api/recent_sessions', async function(req, res) {
   }
 })
 
+export {server, rooms};
 
-server.listen(3001, () => {
-  console.log("Backend running on http://localhost:3001");
-});
+if (process.env.NODE_ENV !== "test") {
+  server.listen(3001, () => {
+    console.log("Backend running on http://localhost:3001");
+  });
+}
