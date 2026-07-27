@@ -27,7 +27,7 @@ type Session = {
 
 
 
-const socket = io("http://127.0.0.1:3001");
+const socket = io("http://127.0.0.1:3001", {withCredentials: true});
 
 const BACKEND_URL = "http://127.0.0.1:3001";
 
@@ -117,6 +117,25 @@ export default function HomePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [panelOpen, setPanel] = useState<string | null>(null);
+  type searchResult = {
+    id: number;
+    display_name: string;
+    avatar_url: string | null;
+    platform: string | null;
+
+  }
+
+  const [searchInput, setSearchInput] = useState("");
+  const [searchResults, setSearchResults]= useState<searchResult[]>([]);
+  type friends = {
+    friendshipId: number;
+    display_name: string;
+    avatar_url: string;
+    friendID: number ;
+    online?: boolean; // optional 
+  }
+  const [allFriends, setAllFriends] = useState<friends[]>([]);
 
   useEffect (() => {
     // if (!userId) return;
@@ -145,6 +164,36 @@ export default function HomePage() {
     }
   }, []);
 
+  useEffect(()=> {
+    function handleStatusUpdate({userID, online}: {userID: number, online: boolean}){
+      console.log("Frontend recieved status update", userID, online);
+      setAllFriends((prevFriends) => prevFriends.map((friend)=> 
+        friend.friendID === userID ? {...friend, online} : friend
+    ));
+  };
+
+  socket.on("status:update", handleStatusUpdate);
+
+  return() =>{
+    socket.off("status:update", handleStatusUpdate);
+  }
+        
+    
+  },[])
+
+  useEffect(()=> {
+    function handleNewRequest(newReq: pendingRequest){
+      setPendingRequests((prev) => [...prev,newReq]);
+    }
+    socket.on("friend:newRequest", handleNewRequest);
+    return () => {
+      socket.off("friend:newRequest", handleNewRequest); 
+    }
+  }, []);
+
+  
+
+
   useEffect(() => {
     
 
@@ -158,7 +207,59 @@ export default function HomePage() {
         setPlaylists(data.playlists);
       })
       .catch(() => {});
+
   }, []);
+
+ 
+
+ 
+  type pendingRequest = {
+    id: number;
+    requester_id: number;
+    created_at: string;
+    display_name: string;
+    avatar_url: string | null;
+  }
+  const[pendingRequests, setPendingRequests] = useState<pendingRequest[]>([]);
+  
+   useEffect(() =>{
+    async function grabPendingRequests(){
+    try{
+      const response = await fetch(`${BACKEND_URL}/friends/requests`, {credentials: 'include'});
+      if (!response.ok){
+        return;
+      }
+      const data = await response.json();
+      setPendingRequests(data);
+
+    }
+    catch(err){
+      console.error(err);
+    }
+  }
+    grabPendingRequests();
+  }, []);
+
+  useEffect(() => {
+    grabFriends();
+  })
+  async function grabFriends(){
+    try {
+      const response = await fetch(`${BACKEND_URL}/friends/grabAll`, {credentials: "include"});
+      if (!response.ok){
+        return;
+      }
+      const data = await response.json();
+      setAllFriends(data);
+
+    }
+    catch(error){
+      toast.error(`${error}`);
+    }
+
+  }
+
+   
 
   const roomInfo = currentActiveRoomID || makingRoom;
 
@@ -190,6 +291,8 @@ export default function HomePage() {
       if (!res.ok){
         throw new Error('Logout failed');
       }
+
+      socket.disconnect();
 
       setProfile(null);
       setPlatform(null);
@@ -223,6 +326,7 @@ export default function HomePage() {
   let profileArea;
   if (profile) {
     profileArea = (
+      <>
       <div className="profile_Area"> 
         
       
@@ -241,8 +345,15 @@ export default function HomePage() {
           </>
         )
         }
+
+        
         
       </div>
+      <div style = {{marginTop: "0.7rem"}}>
+        <button style = {{marginRight: "0.8rem"}}onClick = {() => setPanel("requests")}>Friend Requests</button>
+        <button onClick = {() => {setPanel("all"); grabFriends()}}>View All Friends</button>
+      </div>
+      </>
     )
   } else {
     profileArea = (
@@ -253,6 +364,76 @@ export default function HomePage() {
     )
   }
 
+  async function grabSearchResults(){
+    try {
+      const result = new URLSearchParams({name: searchInput});
+      const response = await fetch(`${BACKEND_URL}/users/search?${result}`, {credentials: 'include'});
+      if (!response.ok){
+        const data = await response.json();
+        toast.error(data.error);
+        return;
+      }
+      const data = await response.json();
+      setSearchResults(data);
+    }
+    catch(error){
+      console.error(error);
+    }
+  }
+  
+
+  
+  async function sendFriendRequest(requesteeId: number){
+    const alreadyFriends = allFriends.some((friend) => friend.friendID === requesteeId);
+    if (alreadyFriends){
+      toast.error("You're already friends");
+      return;
+    }
+    try {
+      const response = await fetch(`${BACKEND_URL}/friends/request`,{
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({requestee_id: requesteeId})
+        
+      });
+
+      
+      if (!response.ok){
+        const data = await response.json();
+        toast.error(data.error);
+        return;
+      }
+      toast.success("Friend request sent!");
+      setSearchInput("");
+      setSearchResults([]);
+    }
+    catch(err){
+      console.error(err);
+      toast.error(`Something went wrong: ${err}`);
+    }
+
+  }
+
+  async function respondtoRequest(id: number, action: string){
+    try {
+      const response = await fetch(`${BACKEND_URL}/friends/requests/${id}/${action}`, 
+        {method: "PATCH", credentials: "include"}
+      )
+      if (!response.ok){
+        toast.error(`Failed to ${action} the request. Please try again later`);
+        return;
+      }
+
+      setPendingRequests(req => req.filter(r=> r.id !== id));
+    }
+    catch(error){
+      console.log(error);
+    }
+  }
+
+  
+  
   return (
     <main className="home-page">
       <div className="top-portion">
@@ -267,8 +448,92 @@ export default function HomePage() {
                 {profileArea}
                 </section>
                 </div>
+
+                <div className = "row friends">
+                  <div className = " col-9 onlineFriends">
+                    <h2>Friends Online</h2>
+                    {allFriends.filter((friend)=> friend.online).length === 0 ? (
+                      <p style = {{color: "white"}}>No friends online</p>
+                    ): (<div className = "onlineFriendsList">
+                      {allFriends.filter((friend)=> friend.online == true).map((friend)=> (
+                        <div key = {friend.friendID} className = "online-friend">
+                          {friend.avatar_url && <img src = {friend.avatar_url}  /> }
+                          <p style = {{color: "white"}}>{friend.display_name} 🟢 </p>
+                        </div>
+                      ))}
+                      </div>)}
+                  </div>
+              <div className = "col-3 friendContainer">
+                <div className = "addFriendContainer">
+                    <h4 style = {{color: "#eae1d1"}}>Add friends</h4>
+                    <div className = "searching" style = {{display: "flex", gap: "6px"}}>
+                      <input value = {searchInput} onChange={(e)=> setSearchInput(e.target.value)} placeholder = "Enter display name" />
+                      <button onClick ={grabSearchResults}>Search</button>
+                    </div>
+                      {searchResults.map((res)=>(
+                        <>
+                        <div key = {res.id} className = "searchRes">
+                          <div style = {{display: "flex", alignItems:"center", gap: "8px"}}>
+                            {res.avatar_url && <img src = {res.avatar_url} />}
+                            <div style = {{display: "flex", flexDirection: "column", width: "100%", flex: 1, lineHeight: 0.3}}>
+                              <p style = {{marginLeft: "0.4rem", whiteSpace: "nowrap"}}>{res.display_name} </p>
+                              <p style = {{marginLeft: "0.4rem", whiteSpace: "nowrap"}}>from <span style = {{fontWeight: 600, color: "white"}}>{res.platform} </span> </p>
+                            </div>
+                            
+                          </div>
+                          
+                          <button style = {{marginLeft: "2rem"}}onClick = {() => sendFriendRequest(res.id)}>Send</button>
+                          
+                        </div>                        
+                        </>
+                        ))}
+                        
+                    </div>
+                    
+              </div>
+                
+            </div>
+
+              <div className = "friendPanel">
+                
+                  {panelOpen == "requests" && (   
+                      <div className = "pending-requests">
+                        <h3>Friend Requests: {pendingRequests.length}</h3>
+                        {pendingRequests.map((req)=> (
+                          <div key = {req.id} className="requests"> 
+                            {req.avatar_url && <img src = {req.avatar_url} />}
+                            <p style= {{color: "white"}}>{req.display_name}</p>
+                            <button onClick= {()=> respondtoRequest(req.id, "accept")}>Accept</button>
+                            <button onClick= {()=> respondtoRequest(req.id, "decline")}>Decline</button>
+                          </div>
+                        ))}
+                      </div>
+                      )}
+
+                    {panelOpen == "all" && (
+                      <>
+                      <p className = "friendsListP" style = {{color: "white"}}>Friends List</p>
+                      <div className = " row allFriends">
+                        
+                      
+                        {allFriends.map((friend)=>(
+                          <div className = "friendsCard  col-lg-4" key = {friend.friendID}>
+                            <p style = {{color: "white"}}>{friend.display_name}</p>
+                            <img style = {{width: "50px", height: "50px"}}src = {friend.avatar_url} />
+                          </div>
+                        ))}
+                        </div>
+                       </>
+                      )}
+                      
+                </div>
+                  
+
+
             
                 <div className="bottom-portion">
+
+                  
             
             {platform && (
         <section className="playlists">
