@@ -75,7 +75,7 @@ var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 app.get('/auth/spotify', function(req, res) {
 
   var state = helpers.generateRandomString(16);
-  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify';
+  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify user-top-read';
 
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -328,6 +328,56 @@ app.get('/api/playlists', async function(req, res) {
     res.status(500).json({ error: 'Could not fetch playlists' });
   }
 });
+
+app.get('/api/top_tracks', async function(req,res) {
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const userId = Number(req.session.user.userId);
+
+  try {
+    const user = await helpers.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({error:"Couldn't find the user."});
+    }
+
+    if(user.platform !== "spotify") {
+      return res.json([]);
+    }
+
+    const response = await axios.get(
+      "https://api.spotify.com/v1/me/top/tracks",
+      {
+        params: {
+          limit:4
+        },
+        headers:{
+
+          Authorization: `Bearer ${user.access_token}`
+
+        }
+      }
+    )
+
+    const tracks = response.data.items.map((track:any) => ({
+      name:track.name,
+      artist:track.artists[0].name,
+      image: track.album.images[0]?.url
+    }))
+
+    return res.json(tracks);
+
+
+  }
+  catch(err) {
+    console.error("Couldn't get top tracks:", err)
+    return res.status(500).json({
+      error:"Couldn't get top tracks."
+    })
+  }
+
+})
 
 app.post('/friends/request', async function(req,res) {
   if(!req.session.user){

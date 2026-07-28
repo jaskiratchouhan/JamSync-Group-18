@@ -460,3 +460,18 @@ button:disabled {
 
   margin-bottom: 2rem;
 }
+
+.tracklist {
+  display:flex;
+  gap:120px;
+}
+
+.track-layout {
+  text-align: center;
+}
+
+.track-layout img {
+  border-radius: 18px;
+  width:100px;
+  height:100px;
+}
