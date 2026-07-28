@@ -569,8 +569,9 @@ html.room-dark-background {
 
 .music-card {
   width: 100%;
-  max-height: 260px;
+  max-height: 380px;
   padding: 18px 20px;
+  padding-bottom: 20px;
 
   border: 2px solid #211b27;
   border-radius: 18px;
@@ -958,7 +959,7 @@ html.room-dark-background {
 
   .music-card {
     width: 100%;
-    max-height: 190px;
+    max-height: 300px;
     padding: 9px;
   }
 
@@ -1712,4 +1713,302 @@ html.room-dark-background {
     padding: 4px 5px;
     font-size: 0.62rem;
   }
+}
+
+/* =========================================================
+   FINAL USER LIST + MEDIA PANEL FIX
+   Keep this at the absolute bottom of ActiveRoomPage.css.
+   ========================================================= */
+
+/* Always display participants as one consistent vertical list. */
+.room-page .users-grid.users-grid-list {
+  width: min(960px, 100%) !important;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  margin-inline: auto;
+  padding: 4px 4px 48px;
+
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  align-content: initial !important;
+
+  gap: 10px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.room-page .users-grid.users-grid-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Every user card uses exactly the same internal layout. */
+.room-page .users-grid.users-grid-list > .user-card {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0;
+  min-height: 82px !important;
+  max-height: none !important;
+  padding: 10px 12px !important;
+
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    46px
+    minmax(150px, 205px);
+
+  grid-template-areas:
+    "name mic buttons"
+    "badge mic buttons"
+    "subtitle subtitle subtitle";
+
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  justify-content: stretch;
+
+  border: 3px solid #000000;
+  border-radius: 15px;
+  outline: none;
+  overflow: hidden;
+}
+
+/* Prevent the decorative overlay from covering card content. */
+.room-page .users-grid.users-grid-list > .user-card::after {
+  display: none !important;
+}
+
+/* Name always stays on the left. */
+.room-page .users-grid.users-grid-list > .user-card > h2 {
+  grid-area: name;
+
+  min-width: 0;
+  margin: 0 !important;
+
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.12;
+  text-align: left;
+
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+/* Mic always stays in the middle. */
+.room-page
+  .users-grid.users-grid-list
+  > .user-card
+  > .mic-container {
+  grid-area: mic;
+
+  width: 46px;
+  height: 46px;
+  margin: 0 !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Host badge always stays under the name. */
+.room-page .users-grid.users-grid-list > .user-card > .badge {
+  grid-area: badge;
+
+  margin: 0 !important;
+  justify-self: start;
+}
+
+/* Buttons always stay on the right. */
+.room-page
+  .users-grid.users-grid-list
+  > .user-card
+  > .button-row {
+  grid-area: buttons;
+
+  width: 100%;
+  min-width: 0;
+  margin: 0 !important;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Ensure every button remains visible. */
+.room-page
+  .users-grid.users-grid-list
+  > .user-card
+  > .button-row
+  button {
+  width: 100%;
+  min-width: 0;
+  min-height: 35px;
+  padding: 6px 8px;
+
+  font-size: 0.76rem;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+/* Transcript remains below the complete user row. */
+.room-page
+  .users-grid.users-grid-list
+  > .user-card
+  > .subtitle {
+  grid-area: subtitle;
+
+  width: 100%;
+  min-height: 0;
+  margin: 4px 0 0 !important;
+  text-align: left;
+}
+
+/* Open media panel must grow enough to show all controls. */
+.room-page .bottom-area.media-open .music-card {
+  height: auto !important;
+  max-height: calc(100svh - 60px) !important;
+  padding: 18px 20px !important;
+  border-width: 2px !important;
+
+  overflow-x: hidden !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Back, Play/Pause and Skip must never be clipped. */
+.room-page .bottom-area.media-open .music-controls {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+
+  width: 100%;
+  margin-top: 10px;
+  padding-bottom: 4px;
+}
+
+.room-page .bottom-area.media-open .music-controls button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 80px;
+  min-height: 40px;
+  flex: 0 1 auto;
+
+  visibility: visible !important;
+  opacity: 1;
+}
+
+/* Only collapse the card when controls are genuinely closed. */
+.room-page .bottom-area.media-closed .music-card {
+  height: 0 !important;
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-width: 0 !important;
+
+  overflow: hidden !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 700px) {
+  .room-page .users-grid.users-grid-list {
+    width: 100% !important;
+    padding: 1px 1px 48px;
+    gap: 7px;
+  }
+
+  .room-page .users-grid.users-grid-list > .user-card {
+    min-height: 72px !important;
+    padding: 8px 9px !important;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      36px;
+
+    grid-template-areas:
+      "name mic"
+      "badge mic"
+      "buttons buttons"
+      "subtitle subtitle";
+
+    column-gap: 8px;
+  }
+
+  .room-page
+    .users-grid.users-grid-list
+    > .user-card
+    > .button-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .room-page
+    .users-grid.users-grid-list
+    > .user-card
+    > .button-row
+    button {
+    flex: 1 1 105px;
+  }
+
+  .room-page .bottom-area.media-open .music-card {
+    max-height: calc(100svh - 48px) !important;
+    padding: 10px !important;
+  }
+
+  .room-page .bottom-area.media-open .music-controls button {
+    min-width: 65px;
+    min-height: 34px;
+  }
+}
+
+/* Always allow participant scrolling without showing a scrollbar. */
+.room-page .users-grid,
+.room-page .users-grid.users-grid-list {
+  min-height: 0 !important;
+  height: 100% !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+
+.room-page .users-grid::-webkit-scrollbar,
+.room-page .users-grid.users-grid-list::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+/* Keep enough space so the final user can scroll above the media toggle. */
+.room-page .users-grid,
+.room-page .users-grid.users-grid-list {
+  padding-bottom: 60px !important;
+}
+
+/* Do not create a scrollbar inside the media controls. */
+.room-page .bottom-area.media-open .music-card {
+  height: auto !important;
+  max-height: none !important;
+
+  overflow: hidden !important;
+}
+
+/* Keep media buttons fully visible without internal scrolling. */
+.room-page .bottom-area.media-open .music-controls {
+  flex-shrink: 0;
+  padding-bottom: 8px;
 }

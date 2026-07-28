@@ -587,11 +587,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
         </div>
       </header>
 
-      <section
-        className={`users-grid ${
-          displayUsers.length > 4 ? "users-grid-list" : ""
-        }`}
-      >
+      <section className="users-grid users-grid-list">
         {displayUsers.map((roomUser) => {
           const isCurrentUser = roomUser.id === user.id;
           const isLocallyMuted = localMutedUsers.includes(roomUser.id);
