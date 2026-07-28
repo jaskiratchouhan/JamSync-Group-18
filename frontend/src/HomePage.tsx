@@ -42,6 +42,12 @@ type CurrentUsersSessions = {
   room_code: string;
   joined_at: string;
 }
+
+type UserTopTrack = {
+  name: string;
+  artist: string;
+  image: string | null;
+}
 function makeRandomUser() {
   const id = crypto.randomUUID();
 
@@ -121,7 +127,7 @@ export default function HomePage() {
   const [platform, setPlatform] = useState<string | null>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
-
+  const [topTracks, setTopTracks] = useState<UserTopTrack[]>([])
   const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanel] = useState<string | null>(null);
   type searchResult = {
@@ -215,6 +221,20 @@ export default function HomePage() {
       .catch(() => {});
 
   }, []);
+
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/api/top_tracks`, { credentials: "include"
+
+    })
+    .then(res => res.json())
+    .then(data => {
+      setTopTracks(data);
+    })
+    .catch(err => {
+      console.error("Unable to retrieve top tracks ", err);
+    })
+
+  },[])
 
 
   useEffect(() => {
@@ -559,8 +579,29 @@ export default function HomePage() {
                       )}
                       
                 </div>
-                  
+                  {platform === "spotify" && (
+                  <section className="toptracks">
+                    <h2 style={{color:"white"}}>
+                      Tracks You Love
+                    </h2>
+                    <div className="tracklist">
+                      {topTracks.map((track) => (
+                        <div className="track-layout" key={track.name}>
 
+                          {track.image && (
+                            <img src={track.image} width="100" height="100"></img>
+                          )}
+                          <p style={{color:"white"}}>
+                            {track.name}
+                          </p>
+                          <p style={{color:"white"}}>
+                            {track.artist}
+                          </p>
+                          </div>
+                      ))}
+                    </div>
+                  </section>
+                  )}
 
             
                 <div className="bottom-portion">
