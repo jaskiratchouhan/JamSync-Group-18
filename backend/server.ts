@@ -447,25 +447,7 @@ async function leaveRoom(
 }
 //
 
-app.get('/api/recent_sessions', async function(req, res) {
 
-  if (!req.session.user){
-    return res.status(401).json({error: "Not authenticated"});
-  }
-  const userId = Number(req.session.user.userId);
-
-
-  try {
-    const sessions = await helpers.getUserCurrentSessions(userId)
-
-    return res.json(sessions);
-  } catch(err) {
-    console.error("Unable to get user's sessions:", err);
-    return res.status(500).json({
-      error: "Unable to get user's sessions"
-    })
-  }
-})
 
 export {server, rooms};
 

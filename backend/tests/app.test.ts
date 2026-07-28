@@ -108,6 +108,63 @@ describe("Friends", () => {
 
 })
 
+describe("Profile", () => {
+    it("should return the profile of the user", async() => {
+        const {agent, userId} = await createGuestSession();
+        const response = await agent.get("/api/profile")
+        assert.equal(response.status, 200);
+        assert.equal(response.body.id, userId)
+        assert.ok(response.body.display_name)
+    })
+
+    it("should reject trying to obtain profile information if not authenticated", async() => {
+        const response = await request(app).get("/api/profile")
+        assert.equal(response.status, 401);
+        assert.ok(response.body.error)
+    })
+})
+
+
+describe("Track Recommendations", () => {
+    it("should not accept a request for grabbing track suggestions for user that isn't authenticated", async() => {
+        const response = await request(app).get("/api/top_tracks");
+        assert.equal(response.status,401);
+    })
+    it("should not return anything for a user that isn't a Spotify user", async() => {
+        const {agent} = await createGuestSession()
+        const response = await agent.get("/api/top_tracks")
+        assert.equal(response.status, 200)
+        assert.deepEqual(response.body,[])
+    });
+   
+})
+
+describe("Joined Sessions", () => {
+    it("should not work if no user is logged in", async() => {
+        const response = await request(app).get("/api/recent_sessions")
+        assert.equal(response.status, 401)
+    })
+    it("if there are no joined sessions, return nothing", async() => {
+        const {agent} = await createGuestSession()
+        const response = await agent.get("/api/recent_sessions")
+        assert.equal(response.status, 200)
+        assert.deepEqual(response.body, [])
+    })
+    it("returns the joined sessions of the current user", async() => {
+        const {agent, userId} = await createGuestSession()
+        const session = await helpers.insertSession(Date.now().toString(), userId, "Mock")
+        await helpers.insertSessionMember(session.id, userId)
+
+        const response = await agent.get("/api/recent_sessions")
+
+        assert.equal(response.status, 200)
+        assert.equal(response.body.length, 1)
+        assert.equal(response.body[0].id, session.id)
+        await helpers.deleteSession(session.id);
+    })
+
+})
+
 after(async() => {
         for (const id of createdFriendRequests){
             await helpers.deleteFriendRequest(id);
