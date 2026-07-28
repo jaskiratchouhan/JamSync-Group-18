@@ -1,0 +1,1715 @@
+html.room-dark-background,
+body.room-dark-background,
+#root.room-dark-background {
+  background: #0e0c13 !important;
+  border-color: #30293a !important;
+}
+
+body.room-dark-background {
+  color: #ddd7e3;
+}
+
+html.room-dark-background {
+  color-scheme: dark;
+}
+
+.room-page {
+  --room-bg: #f4f2f8;
+  --room-panel: rgba(255, 255, 255, 0.88);
+  --room-panel-solid: #ffffff;
+
+  --room-text: #393440;
+  --room-muted: #716979;
+  --room-heading: #3f155a;
+  --room-music-heading: #481861;
+
+  --room-border: rgba(47, 37, 58, 0.18);
+  --room-shadow: 0 18px 45px rgba(41, 26, 52, 0.12);
+  --room-button: #ffffff;
+  --room-button-hover: #f1eaf7;
+  --room-accent: #8c45bd;
+  --room-danger: #c83d4b;
+
+    width: 100%;
+    height: 100svh;
+    min-height: 100svh;
+    padding: clamp(10px, 1.8vw, 22px);
+
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: clamp(9px, 1.5vw, 17px);
+
+    overflow: hidden;
+    color: var(--room-text);
+
+  background:
+    radial-gradient(
+      circle at 15% 5%,
+      rgba(178, 105, 220, 0.17),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 92% 18%,
+      rgba(78, 160, 214, 0.13),
+      transparent 30%
+    ),
+    var(--room-bg);
+
+  transition:
+    background 300ms ease,
+    color 300ms ease;
+}
+
+.room-page[data-theme="dark"] {
+  --room-bg: #111016;
+  --room-panel: rgba(29, 26, 36, 0.92);
+  --room-panel-solid: #211d28;
+
+  --room-text: #ddd7e3;
+  --room-muted: #aaa1b3;
+  --room-heading: #dba6f4;
+  --room-music-heading: #d8a0f1;
+
+  --room-border: rgba(255, 255, 255, 0.14);
+  --room-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --room-button: #292430;
+  --room-button-hover: #37303f;
+  --room-accent: #c27ce8;
+  --room-danger: #ff7380;
+}
+
+.room-page[data-theme="dark"] {
+  background:
+    radial-gradient(
+      circle at 15% 5%,
+      rgba(132, 63, 166, 0.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 92% 18%,
+      rgba(59, 102, 137, 0.12),
+      transparent 30%
+    ),
+    #0e0c13;
+}
+
+.room-page,
+.room-page * {
+  color: var(--room-text);
+}
+
+.room-header {
+  position: relative;
+  width: 100%;
+  padding: clamp(18px, 3vw, 30px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: start;
+
+  background: var(--room-panel);
+  border: 1px solid var(--room-border);
+  border-radius: 24px;
+  box-shadow: var(--room-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.room-heading-area {
+  min-width: 0;
+}
+
+.room-page .room-title {
+  margin: 0;
+  text-align: center;
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  color: var(--room-heading);
+}
+
+.room-page .music-title {
+  margin: 0;
+  color: var(--room-music-heading);
+  font-weight: 750;
+}
+
+.room-page .music-card h2 {
+  color: var(--room-music-heading);
+}
+
+.room-connected-count {
+  margin: 4px 0 20px;
+  text-align: center;
+  color: var(--room-muted);
+  font-weight: 600;
+}
+
+.room-information {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.room-code {
+  padding: 10px 14px;
+  background: var(--room-panel-solid);
+  border: 1px solid var(--room-border);
+  border-radius: 12px;
+  box-shadow: 0 5px 18px rgba(20, 15, 25, 0.06);
+  overflow-wrap: anywhere;
+}
+
+.room-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.room-page button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--room-border);
+  border-radius: 12px;
+  background: var(--room-button);
+  color: var(--room-text);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 5px 14px rgba(25, 18, 31, 0.08);
+
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.room-page button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--room-button-hover);
+  border-color: var(--room-accent);
+  box-shadow: 0 9px 22px rgba(25, 18, 31, 0.14);
+}
+
+.room-page button:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.room-page button:focus-visible {
+  outline: 3px solid var(--room-accent);
+  outline-offset: 3px;
+}
+
+.room-page button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.leave-room-button {
+  color: var(--room-danger);
+}
+
+.theme-toggle {
+  min-width: 48px;
+  padding-inline: 12px;
+  font-size: 1.2rem;
+}
+
+.qr-box {
+  margin-top: 16px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.qr-box canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  padding: 7px;
+  background: white;
+  border: 1px solid var(--room-border);
+  border-radius: 13px;
+  box-shadow: 0 8px 20px rgba(20, 15, 25, 0.1);
+}
+
+.qr-box p {
+  color: var(--room-muted);
+  font-size: 0.9rem;
+}
+
+.users-grid {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(min(190px, 100%), 245px));
+  grid-auto-rows: max-content;
+
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+
+  gap: clamp(10px, 1.8vw, 20px);
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+
+.users-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.users-grid .user-card {
+  max-height: 100%;
+}
+
+.user-card {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 230px;
+  padding: 20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+
+  border: 3px solid #000000;
+  border-radius: 22px;
+  background-clip: border-box;
+  outline: 1px solid #000000;
+  outline-offset: -2px;
+  text-align: center;
+  overflow: hidden;
+
+  box-shadow:
+    0 16px 32px rgba(30, 20, 38, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+
+  transform-origin: center;
+  animation:
+    old-tv-open
+    620ms
+    cubic-bezier(0.22, 0.9, 0.31, 1)
+    both;
+}
+
+.user-card::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  pointer-events: none;
+  border-radius: inherit;
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.2),
+    transparent 42%,
+    rgba(0, 0, 0, 0.06)
+  );
+}
+
+.user-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.room-page .user-card h2 {
+  margin: 0;
+  color: #17131d;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.user-card.user-card-exiting {
+  pointer-events: none;
+
+  animation:
+    old-tv-close
+    620ms
+    cubic-bezier(0.65, 0, 0.78, 0.15)
+    forwards;
+}
+
+@keyframes old-tv-open {
+  0% {
+    opacity: 0;
+    transform: scale(0.01);
+    clip-path:
+      inset(49.6% 49.6% 49.6% 49.6% round 50%);
+  }
+
+  20% {
+    opacity: 1;
+    transform: scale(1);
+    clip-path:
+      inset(49.6% 20% 49.6% 20% round 20px);
+  }
+
+  42% {
+    clip-path:
+      inset(49.6% 0 49.6% 0 round 20px);
+  }
+
+  100% {
+    clip-path:
+      inset(0 0 0 0 round 22px);
+  }
+}
+
+@keyframes old-tv-close {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    clip-path:
+      inset(0 0 0 0 round 22px);
+  }
+
+  48% {
+    opacity: 1;
+    clip-path:
+      inset(49.6% 0 49.6% 0 round 20px);
+  }
+
+  76% {
+    opacity: 1;
+    clip-path:
+      inset(49.6% 48% 49.6% 48% round 50%);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.01);
+    clip-path:
+      inset(49.6% 49.6% 49.6% 49.6% round 50%);
+  }
+}
+
+.mic-container {
+  height: 58px;
+  margin: 10px 0 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mic-container svg {
+  width: 30px;
+  height: 30px;
+  transform-origin: center;
+
+  transition:
+    color 180ms ease,
+    fill 180ms ease,
+    filter 180ms ease,
+    transform 180ms ease;
+}
+
+.mic-red {
+  color: #d72f3f !important;
+  fill: #d72f3f !important;
+  filter:
+    drop-shadow(0 0 5px rgba(215, 47, 63, 0.5));
+}
+
+.mic-green {
+  color: #148f45 !important;
+  fill: #148f45 !important;
+  filter:
+    drop-shadow(0 0 7px rgba(20, 143, 69, 0.65));
+}
+
+.mic-gray {
+  color: #655c6b !important;
+  fill: #655c6b !important;
+}
+
+.mic-speaking {
+  animation:
+    microphone-speaking
+    650ms
+    ease-in-out
+    infinite;
+}
+
+@keyframes microphone-speaking {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.5);
+  }
+}
+
+.badge {
+  width: fit-content;
+  margin: 4px auto 10px;
+  padding: 4px 10px;
+  color: white !important;
+  background: rgba(25, 20, 30, 0.76);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.subtitle {
+  width: 100%;
+  min-height: 34px;
+  margin: 8px 0;
+  padding: 7px 9px;
+  color: #201a26 !important;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 10px;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.button-row {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.button-row button {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.82);
+  color: #211925;
+  border-color: rgba(31, 23, 35, 0.3);
+}
+
+.button-row button:hover:not(:disabled) {
+  background: white;
+}
+
+.muted-button {
+  background: #ffe4e6 !important;
+  color: #a51f2d !important;
+  border-color: #bd3442 !important;
+}
+
+.bottom-area {
+  position: relative;
+  width: min(880px, 100%);
+  min-height: 40px;
+  margin-inline: auto;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  overflow: visible;
+  transition:
+    min-height 300ms ease,
+    transform 300ms ease;
+}
+
+.bottom-area.media-closed {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 0;
+  width: auto;
+  min-height: 0;
+  transform: translateX(-50%);
+}
+
+.bottom-area.media-open {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  width: min(880px, 100%);
+  transform: none;
+}
+
+.media-panel-toggle {
+  position: relative;
+  z-index: 3;
+  min-height: 38px !important;
+  padding: 7px 15px !important;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  border-radius: 13px 13px 0 0 !important;
+  color: var(--room-text) !important;
+  background: var(--room-panel-solid) !important;
+}
+
+.media-toggle-arrow {
+  display: inline-block;
+  color: var(--room-accent) !important;
+  font-size: 1.25rem;
+  line-height: 1;
+
+  transition: transform 220ms ease;
+}
+
+.bottom-area.media-open .media-toggle-arrow {
+  transform: translateY(-1px);
+}
+
+.bottom-area.media-closed .media-toggle-arrow {
+  transform: translateY(1px);
+}
+
+.music-card {
+  width: 100%;
+  max-height: 260px;
+  padding: 18px 20px;
+
+  border: 2px solid #211b27;
+  border-radius: 18px;
+  text-align: center;
+
+  background: var(--room-panel-solid);
+  box-shadow: var(--room-shadow);
+
+  opacity: 1;
+  transform: translateY(0) scaleY(1);
+  transform-origin: bottom center;
+
+  overflow: hidden;
+
+  transition:
+    max-height 320ms ease,
+    padding 320ms ease,
+    border-width 320ms ease,
+    opacity 220ms ease,
+    transform 320ms ease;
+}
+
+.bottom-area.media-closed .music-card {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: min(880px, calc(100vw - 20px));
+
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transform:
+    translateX(-50%)
+    translateY(18px)
+    scaleY(0.82);
+
+  transition:
+    max-height 300ms ease,
+    padding 300ms ease,
+    opacity 180ms ease,
+    visibility 0s linear 300ms,
+    transform 300ms ease;
+}
+
+.bottom-area.media-unpinned.media-open {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 0;
+  width: auto;
+  transform: translateX(-50%);
+}
+
+.bottom-area.media-unpinned.media-open .music-card {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: min(880px, calc(100vw - 20px));
+
+  max-height: 260px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+
+  transform: translateX(-50%) translateY(0) scaleY(1);
+  transition:
+    max-height 300ms ease,
+    padding 300ms ease,
+    opacity 180ms ease,
+    transform 300ms ease;
+}
+
+.music-artist,
+.music-status,
+.music-controller-user,
+.music-permission-note {
+  color: var(--room-muted) !important;
+}
+
+.music-controller-details {
+  margin: 10px 0;
+  padding: 9px 12px;
+
+  color: var(--room-text);
+  background: color-mix(
+    in srgb,
+    var(--room-panel-solid) 82%,
+    var(--room-accent) 18%
+  );
+
+  border: 1px solid var(--room-border);
+  border-radius: 10px;
+}
+
+.music-controller-label {
+  color: var(--room-text) !important;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.music-controller-user {
+  margin-top: 2px;
+}
+
+.music-status {
+  margin: 9px 0;
+}
+
+.music-status strong {
+  color: var(--room-text) !important;
+}
+
+.music-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.music-controls button {
+  color: var(--room-text);
+  background: var(--room-button);
+}
+
+.music-controls button:disabled {
+  color: var(--room-muted);
+  background: color-mix(
+    in srgb,
+    var(--room-panel-solid) 75%,
+    var(--room-muted) 25%
+  );
+  opacity: 0.72;
+}
+
+.music-permission-note {
+  margin-top: 7px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 700px) {
+  .room-page {
+    height: 100svh;
+    min-height: 100svh;
+    padding: 7px;
+    gap: 7px;
+    overflow: hidden;
+  }
+
+  .room-header {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 17px;
+  }
+
+  .room-heading-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title title"
+      "count count"
+      "info actions"
+      "qr actions";
+    gap: 7px 9px;
+    align-items: start;
+  }
+
+  .room-page .room-title {
+    grid-area: title;
+    margin: 0;
+    font-size: clamp(1.65rem, 9vw, 2.25rem);
+    line-height: 1.03;
+    text-align: center;
+  }
+
+  .room-connected-count {
+    grid-area: count;
+    margin: 0 0 3px;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  .room-information {
+    grid-area: info;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    align-content: start;
+  }
+
+  .room-code,
+  .room-information button {
+    width: 100%;
+    min-height: 38px;
+    padding: 7px 9px;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+
+  .qr-box {
+    grid-area: qr;
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    align-items: flex-start;
+  }
+
+  .qr-box canvas {
+    width: 82px !important;
+    height: 82px !important;
+    padding: 4px;
+  }
+
+  .qr-box p {
+    font-size: 0.68rem;
+  }
+
+  .room-header-actions {
+    position: absolute;
+    right: 10px;
+    top: 93px;
+
+    width: min(105px, 30%);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .room-header-actions button {
+    width: 100%;
+    min-height: 38px;
+    padding: 6px 7px;
+    font-size: 0.75rem;
+  }
+
+  .theme-toggle {
+    font-size: 1rem !important;
+  }
+
+  /* One compact participant row per user. */
+  .users-grid {
+    min-height: 0;
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+
+    gap: 7px;
+    padding: 1px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+
+  .users-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .user-card {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 64px;
+    max-height: none;
+    padding: 8px 9px;
+
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      34px
+      minmax(88px, auto);
+    grid-template-areas:
+      "name mic buttons"
+      "badge mic buttons"
+      "subtitle subtitle subtitle";
+
+    gap: 3px 8px;
+    align-items: center;
+
+    border: 3px solid #000;
+    border-radius: 14px;
+    outline: 1px solid #000;
+    outline-offset: -2px;
+  }
+
+  .room-page .user-card h2 {
+    grid-area: name;
+    margin: 0;
+    font-size: clamp(0.88rem, 4.3vw, 1.08rem);
+    line-height: 1.08;
+    text-align: left;
+  }
+
+  .mic-container {
+    grid-area: mic;
+    width: 34px;
+    height: 38px;
+    margin: 0;
+  }
+
+  .mic-container svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .badge {
+    grid-area: badge;
+    margin: 0;
+    justify-self: start;
+    padding: 2px 7px;
+    font-size: 0.62rem;
+  }
+
+  .subtitle {
+    grid-area: subtitle;
+    min-height: 0;
+    margin: 3px 0 0;
+    padding: 4px 6px;
+    font-size: 0.68rem;
+    text-align: left;
+  }
+
+  .button-row {
+    grid-area: buttons;
+    width: auto;
+    min-width: 88px;
+    margin: 0;
+    gap: 4px;
+  }
+
+  .button-row button {
+    min-height: 32px;
+    padding: 5px 7px;
+    border-radius: 8px;
+    font-size: 0.69rem;
+    line-height: 1.05;
+  }
+
+  .bottom-area,
+  .bottom-area.media-closed,
+  .bottom-area.media-unpinned.media-open {
+    position: fixed;
+    z-index: 30;
+    left: 50%;
+    right: auto;
+    bottom: 0;
+    width: auto;
+    min-height: 0;
+    transform: translateX(-50%);
+  }
+
+  .bottom-area.media-pinned.media-open {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: 100%;
+    transform: none;
+  }
+
+  /* No hover preview behavior on touch/mobile. */
+  .bottom-area.media-unpinned.media-open .music-card {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .media-panel-toggle {
+    min-height: 33px !important;
+    padding: 5px 10px !important;
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+  }
+
+  .music-card {
+    width: 100%;
+    max-height: 190px;
+    padding: 9px;
+  }
+
+  .room-page .music-title {
+    font-size: 1rem;
+  }
+
+  .music-artist,
+  .music-status,
+  .music-permission-note {
+    font-size: 0.68rem;
+  }
+
+  .music-controller-details {
+    margin: 5px 0;
+    padding: 5px;
+  }
+
+  .music-controls {
+    gap: 5px;
+  }
+
+  .music-controls button {
+    min-height: 31px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .room-page {
+    padding: 9px;
+  }
+
+  .room-header {
+    border-radius: 18px;
+  }
+
+  .room-information {
+    flex-direction: column;
+  }
+
+  .room-information button,
+  .room-code {
+    width: 100%;
+  }
+
+  .room-page button {
+    font-size: 0.92rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-page *,
+  .room-page *::before,
+  .room-page *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* =========================================================
+   SESSION LAYOUT CORRECTIONS
+   These rules intentionally override earlier room styles.
+   ========================================================= */
+
+/* Keep sizing predictable and prevent borders from escaping. */
+.room-page,
+.room-page * {
+  box-sizing: border-box;
+}
+
+/* -------------------------
+   HEADER
+   ------------------------- */
+
+.room-page .room-header {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 24px);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(16px, 3vw, 34px);
+  align-items: stretch;
+
+  overflow: hidden;
+}
+
+.room-page .room-heading-area {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+}
+
+.room-page .room-title {
+  width: 100%;
+  margin: 0;
+
+  color: var(--room-heading);
+  text-align: left;
+  line-height: 1.02;
+}
+
+.room-page .room-connected-count {
+  width: 100%;
+  margin: 0;
+
+  color: var(--room-muted);
+  text-align: left;
+}
+
+.room-page .room-code {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 42px;
+  margin: 0;
+  padding: 9px 13px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.room-page .theme-toggle {
+  width: 52px;
+  min-width: 52px;
+  margin: 0;
+}
+
+.room-page .room-header-right {
+  min-width: 132px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 9px;
+}
+
+.room-page .room-header-right .qr-box {
+  width: 100%;
+  margin: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.room-page .room-header-right .qr-box canvas {
+  display: block;
+  width: 112px !important;
+  height: 112px !important;
+  max-width: 100%;
+
+  padding: 6px;
+  background: #ffffff;
+  border: 2px solid #111111;
+  border-radius: 12px;
+}
+
+.room-page .room-header-right .qr-box p {
+  margin: 0;
+
+  color: var(--room-muted);
+  font-size: 0.76rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.room-page .copy-link-button,
+.room-page .room-header-right .leave-room-button {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+
+  white-space: normal;
+}
+
+.room-page .room-header-right .leave-room-button {
+  color: var(--room-danger) !important;
+}
+
+/* -------------------------
+   PARTICIPANT AREA
+   Only this section scrolls.
+   ------------------------- */
+
+.room-page .users-grid {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+
+  padding: 4px 4px 48px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.room-page .users-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* Remove the outline/overlay combination that softened corners. */
+.room-page .user-card {
+  min-width: 0;
+
+  border: 3px solid #000000;
+  border-radius: 20px;
+  outline: none;
+  background-clip: padding-box;
+
+  overflow: hidden;
+}
+
+.room-page .user-card::after {
+  display: none;
+}
+
+/* Names may wrap between words, but never letter-by-letter. */
+.room-page .user-card h2 {
+  min-width: 0;
+
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+/* More than four users: use compact vertical rows. */
+.room-page .users-grid.users-grid-list {
+  max-width: 960px;
+  margin-inline: auto;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+
+  gap: 9px;
+}
+
+.room-page .users-grid-list .user-card {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 82px;
+  padding: 10px 12px;
+
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    44px
+    minmax(130px, 190px);
+
+  grid-template-areas:
+    "name mic buttons"
+    "badge mic buttons"
+    "subtitle subtitle subtitle";
+
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+
+  border-radius: 15px;
+}
+
+.room-page .users-grid-list .user-card h2 {
+  grid-area: name;
+
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.12;
+  text-align: left;
+}
+
+.room-page .users-grid-list .mic-container {
+  grid-area: mic;
+
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+
+.room-page .users-grid-list .badge {
+  grid-area: badge;
+
+  margin: 0;
+  justify-self: start;
+}
+
+.room-page .users-grid-list .subtitle {
+  grid-area: subtitle;
+
+  min-height: 0;
+  margin: 4px 0 0;
+  text-align: left;
+}
+
+.room-page .users-grid-list .button-row {
+  grid-area: buttons;
+
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  gap: 5px;
+}
+
+.room-page .users-grid-list .button-row button {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+
+  font-size: 0.76rem;
+  line-height: 1.1;
+  white-space: normal;
+}
+
+/* -------------------------
+   BOTTOM MEDIA DOCK
+   Toggle always sits at the screen bottom.
+   Panel opens above it.
+   ------------------------- */
+
+.room-page .bottom-area,
+.room-page .bottom-area.media-open,
+.room-page .bottom-area.media-closed,
+.room-page .bottom-area.media-pinned.media-open,
+.room-page .bottom-area.media-unpinned.media-open {
+  position: fixed;
+  z-index: 50;
+
+  left: 50%;
+  right: auto;
+  bottom: 0;
+
+  width: min(880px, calc(100vw - 20px));
+  min-height: 0;
+  margin: 0;
+
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+
+  overflow: visible;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Toggle is the first JSX child and therefore remains at the bottom
+   because the flex direction is column-reverse. */
+.room-page .media-panel-toggle {
+  position: relative;
+  z-index: 3;
+
+  flex: 0 0 auto;
+  min-height: 38px !important;
+  margin: 0;
+  padding: 7px 15px !important;
+
+  border-radius: 13px 13px 0 0 !important;
+
+  pointer-events: auto;
+}
+
+/* Media panel appears directly above the bottom toggle. */
+.room-page .bottom-area .music-card {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+
+  width: 100%;
+  max-height: 270px;
+  margin: 0;
+  padding: 16px 20px;
+
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Fully remove the panel when closed; no invisible piece remains. */
+.room-page .bottom-area.media-closed .music-card {
+  position: relative;
+  left: auto;
+  bottom: auto;
+
+  width: 100%;
+  max-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+
+  border-width: 0;
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+
+  transform: translateY(12px);
+}
+
+/* Desktop hover preview opens above the bottom button. */
+@media (hover: hover) and (pointer: fine) {
+  .room-page
+    .bottom-area.media-unpinned.media-open
+    .music-card {
+    position: relative;
+    left: auto;
+    bottom: auto;
+
+    width: 100%;
+    max-height: 270px;
+    padding: 16px 20px;
+
+    border-width: 2px;
+
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+
+    transform: none;
+  }
+}
+
+/* When pinned open, reserve page space so users are not hidden
+   behind the fixed media panel. */
+.room-page.media-controls-pinned-open {
+  padding-bottom:
+    calc(clamp(10px, 1.8vw, 22px) + 282px);
+}
+
+/* -------------------------
+   MOBILE
+   ------------------------- */
+
+@media (max-width: 700px) {
+  .room-page {
+    padding: 7px 7px 44px;
+    gap: 7px;
+  }
+
+  .room-page.media-controls-pinned-open {
+    padding-bottom: 220px;
+  }
+
+  /* Left column:
+       title
+       connected count
+       room code
+       theme
+
+     Right column:
+       QR
+       copy link
+       leave room
+  */
+  .room-page .room-header {
+    padding: 10px;
+
+    grid-template-columns: minmax(0, 1fr) 104px;
+    gap: 8px;
+
+    border-radius: 17px;
+  }
+
+  .room-page .room-heading-area {
+    gap: 7px;
+  }
+
+  .room-page .room-title {
+    font-size: clamp(1.45rem, 7.5vw, 2rem);
+    line-height: 1.02;
+    text-align: left;
+  }
+
+  .room-page .room-connected-count {
+    font-size: 0.75rem;
+    line-height: 1.15;
+  }
+
+  .room-page .room-code {
+    width: 100%;
+    min-height: 35px;
+    padding: 6px 7px;
+
+    font-size: 0.68rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .room-page .theme-toggle {
+    width: 100%;
+    min-width: 0;
+    min-height: 35px;
+    padding: 5px 7px;
+
+    font-size: 0.95rem !important;
+  }
+
+  .room-page .room-header-right {
+    min-width: 0;
+    width: 104px;
+    gap: 7px;
+  }
+
+  .room-page .room-header-right .qr-box canvas {
+    width: 78px !important;
+    height: 78px !important;
+    padding: 4px;
+  }
+
+  .room-page .room-header-right .qr-box p {
+    font-size: 0.61rem;
+  }
+
+  .room-page .copy-link-button,
+  .room-page .room-header-right .leave-room-button {
+    width: 100%;
+    min-height: 35px;
+    padding: 5px 6px;
+
+    font-size: 0.67rem;
+    line-height: 1.08;
+  }
+
+  /* Mobile always uses one compact participant row per user. */
+  .room-page .users-grid,
+  .room-page .users-grid.users-grid-list {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 1px 1px 5px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+
+    gap: 7px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* User name gets its own line.
+     Mic remains beside the name.
+     All buttons move to the second line. */
+  .room-page .user-card,
+  .room-page .users-grid-list .user-card {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 76px;
+    padding: 8px 9px;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 36px;
+    grid-template-areas:
+      "name mic"
+      "badge mic"
+      "buttons buttons"
+      "subtitle subtitle";
+
+    column-gap: 8px;
+    row-gap: 4px;
+    align-items: center;
+
+    border: 3px solid #000000;
+    border-radius: 14px;
+  }
+
+  .room-page .user-card h2,
+  .room-page .users-grid-list .user-card h2 {
+    grid-area: name;
+
+    margin: 0;
+    min-width: 0;
+
+    font-size: clamp(0.9rem, 4.2vw, 1.08rem);
+    line-height: 1.1;
+    text-align: left;
+
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .room-page .user-card .mic-container,
+  .room-page
+    .users-grid-list
+    .user-card
+    .mic-container {
+    grid-area: mic;
+
+    width: 36px;
+    height: 38px;
+    margin: 0;
+  }
+
+  .room-page .user-card .mic-container svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .room-page .user-card .badge,
+  .room-page .users-grid-list .user-card .badge {
+    grid-area: badge;
+
+    margin: 0;
+    justify-self: start;
+
+    padding: 2px 7px;
+    font-size: 0.61rem;
+  }
+
+  .room-page .user-card .button-row,
+  .room-page
+    .users-grid-list
+    .user-card
+    .button-row {
+    grid-area: buttons;
+
+    width: 100%;
+    min-width: 0;
+    margin: 2px 0 0;
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .room-page .user-card .button-row button,
+  .room-page
+    .users-grid-list
+    .user-card
+    .button-row
+    button {
+    flex: 1 1 105px;
+    width: auto;
+    min-width: 0;
+    min-height: 31px;
+    padding: 5px 7px;
+
+    border-radius: 8px;
+
+    font-size: 0.66rem;
+    line-height: 1.08;
+    white-space: normal;
+  }
+
+  .room-page .user-card .subtitle,
+  .room-page .users-grid-list .user-card .subtitle {
+    grid-area: subtitle;
+
+    min-height: 0;
+    margin: 2px 0 0;
+    padding: 4px 6px;
+
+    font-size: 0.67rem;
+    text-align: left;
+  }
+
+  .room-page .bottom-area,
+  .room-page .bottom-area.media-open,
+  .room-page .bottom-area.media-closed,
+  .room-page .bottom-area.media-pinned.media-open,
+  .room-page .bottom-area.media-unpinned.media-open {
+    width: calc(100vw - 14px);
+  }
+
+  .room-page .media-panel-toggle {
+    min-height: 36px !important;
+    padding: 5px 10px !important;
+
+    font-size: 0.69rem !important;
+    white-space: nowrap;
+  }
+
+  .room-page .bottom-area .music-card {
+    max-height: 198px;
+    padding: 9px;
+  }
+
+  /* Disable hover-only opening on touch/mobile.
+     Clicking still opens and closes the panel. */
+  .room-page
+    .bottom-area.media-unpinned.media-open
+    .music-card {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .room-page .music-controls {
+    gap: 5px;
+  }
+
+  .room-page .music-controls button {
+    min-height: 31px;
+    padding: 4px 8px;
+
+    font-size: 0.69rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .room-page .room-header {
+    grid-template-columns: minmax(0, 1fr) 92px;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .room-page .room-header-right {
+    width: 92px;
+  }
+
+  .room-page .room-header-right .qr-box canvas {
+    width: 68px !important;
+    height: 68px !important;
+  }
+
+  .room-page .room-title {
+    font-size: clamp(1.3rem, 7vw, 1.7rem);
+  }
+
+  .room-page .room-code,
+  .room-page .copy-link-button,
+  .room-page .theme-toggle,
+  .room-page .room-header-right .leave-room-button {
+    min-height: 33px;
+    padding: 4px 5px;
+    font-size: 0.62rem;
+  }
+}

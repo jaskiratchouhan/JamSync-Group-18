@@ -3,6 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
 import { QRCodeCanvas } from "qrcode.react";
 import type { RoomState, User } from "../types";
+import "./ActiveRoomPage.css";
 
 declare global {
   interface Window {
@@ -49,6 +50,28 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [localMutedUsers, setLocalMutedUsers] = useState<string[]>([]);
   const [selfMuted, setSelfMuted] = useState(false);
   const selfMutedRef = useRef(false);
+
+  const [mediaControlsOpen, setMediaControlsOpen] = useState(true);
+  const [mediaControlsHovered, setMediaControlsHovered] = useState(false);
+
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+  const savedTheme = localStorage.getItem("jamsync-room-theme");
+
+    if (savedTheme === "light" || savedTheme === "dark") {
+      return savedTheme;
+    }
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+
+  const [displayUsers, setDisplayUsers] = useState<User[]>([]);
+  const [exitingUserIds, setExitingUserIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const exitTimersRef = useRef<Record<string, number>>({});
 
   const currentRoomIdRef = useRef<string | null>(roomId);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -220,6 +243,41 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     });
   }
 
+  function toggleTheme() {
+    setTheme((currentTheme) => {
+      const nextTheme = currentTheme === "light" ? "dark" : "light";
+
+      localStorage.setItem("jamsync-room-theme", nextTheme);
+
+      return nextTheme;
+    });
+  }
+
+  useEffect(() => {
+    document.body.classList.toggle(
+      "room-dark-background",
+      theme === "dark"
+    );
+
+    document.documentElement.classList.toggle(
+      "room-dark-background",
+      theme === "dark"
+    );
+
+    const root = document.getElementById("root");
+
+    root?.classList.toggle(
+      "room-dark-background",
+      theme === "dark"
+    );
+
+    return () => {
+      document.body.classList.remove("room-dark-background");
+      document.documentElement.classList.remove("room-dark-background");
+      root?.classList.remove("room-dark-background");
+    };
+  }, [theme]);
+
   useEffect(() => {
     async function start() {
       leavingRef.current = false;
@@ -335,6 +393,50 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!room) return;
+
+    setDisplayUsers((previousUsers) => {
+      const currentIds = new Set(room.users.map((roomUser) => roomUser.id));
+
+      const usersWhoLeft = previousUsers.filter(
+        (previousUser) => !currentIds.has(previousUser.id)
+      );
+
+      for (const departedUser of usersWhoLeft) {
+        if (exitTimersRef.current[departedUser.id]) continue;
+
+        setExitingUserIds((previousIds) => {
+          const nextIds = new Set(previousIds);
+          nextIds.add(departedUser.id);
+          return nextIds;
+        });
+
+        exitTimersRef.current[departedUser.id] = window.setTimeout(() => {
+          setDisplayUsers((currentUsers) =>
+            currentUsers.filter(
+              (currentUser) => currentUser.id !== departedUser.id
+            )
+          );
+
+          setExitingUserIds((previousIds) => {
+            const nextIds = new Set(previousIds);
+            nextIds.delete(departedUser.id);
+            return nextIds;
+          });
+
+          delete exitTimersRef.current[departedUser.id];
+        }, 620);
+      }
+
+      const departingUsers = previousUsers.filter(
+        (previousUser) => !currentIds.has(previousUser.id)
+      );
+
+      return [...room.users, ...departingUsers];
+    });
+  }, [room]);
+
   function toggleSelfMute() {
     const roomId = currentRoomIdRef.current;
     if (!roomId) return;
@@ -411,36 +513,47 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     return <p className="loading">Starting voice room...</p>;
   }
 
+  const shouldShowMediaControls =
+    mediaControlsOpen || mediaControlsHovered;
+
   return (
-    <main className="room-page">
+    <main
+      className={`room-page ${
+        mediaControlsOpen ? "media-controls-pinned-open" : ""
+      }`}
+      data-theme={theme}
+    >
       <header className="room-header">
-        <div>
-          <h1>JamSync Room</h1>
+        <div className="room-heading-area">
+          <h1 className="room-title">JamSync Room</h1>
 
-          <p>{room.users.length} Users Connected</p>
+          <p className="room-connected-count">
+            {room.users.length}{" "}
+            {room.users.length === 1
+              ? "User Connected"
+              : "Users Connected"}
+          </p>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "10px"
-            }}
+          <strong className="room-code">
+            Room Code: {currentRoomId}
+          </strong>
+
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${
+              theme === "light" ? "dark" : "light"
+            } mode`}
+            title={`Switch to ${
+              theme === "light" ? "dark" : "light"
+            } mode`}
           >
-            <strong>Room Code: {currentRoomId}</strong>
+            {theme === "light" ? "🌙" : "☀️"}
+          </button>
+        </div>
 
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(
-                  `${window.location.origin}/?room=${currentRoomId}`
-                );
-                alert("Invite link copied!");
-              }}
-            >
-              Copy Invite Link
-            </button>
-          </div>
-
+        <div className="room-header-right">
           <div className="qr-box">
             <QRCodeCanvas
               value={`${window.location.origin}/?room=${currentRoomId}`}
@@ -449,23 +562,60 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
             <p>Scan QR to Join</p>
           </div>
+
+          <button
+            type="button"
+            className="copy-link-button"
+            onClick={() => {
+              navigator.clipboard.writeText(
+                `${window.location.origin}/?room=${currentRoomId}`
+              );
+
+              alert("Invite link copied!");
+            }}
+          >
+            Copy Invite Link
+          </button>
+
+          <button
+            type="button"
+            className="leave-room-button"
+            onClick={leaveRoom}
+          >
+            Leave Room
+          </button>
         </div>
-        <button onClick={leaveRoom}>Leave Room</button>
       </header>
 
-      <section className="users-grid">
-        {room.users.map((roomUser) => {
+      <section
+        className={`users-grid ${
+          displayUsers.length > 4 ? "users-grid-list" : ""
+        }`}
+      >
+        {displayUsers.map((roomUser) => {
           const isCurrentUser = roomUser.id === user.id;
           const isLocallyMuted = localMutedUsers.includes(roomUser.id);
 
           const cannotHearUser = isCurrentUser
             ? selfMuted || roomUser.isForceMuted
-            : roomUser.isSelfMuted || roomUser.isForceMuted || isLocallyMuted;
+            : roomUser.isSelfMuted ||
+              roomUser.isForceMuted ||
+              isLocallyMuted;
+
+          const shouldAnimateMic =
+            roomUser.speaking &&
+            !cannotHearUser &&
+            !roomUser.isSelfMuted &&
+            !roomUser.isForceMuted;
 
           return (
             <div
               key={roomUser.id}
-              className="user-card"
+              className={`user-card ${
+                exitingUserIds.has(roomUser.id)
+                  ? "user-card-exiting"
+                  : ""
+              }`}
               style={{ backgroundColor: roomUser.color }}
             >
               <h2>{roomUser.name}</h2>
@@ -478,11 +628,16 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
                   />
                 ) : (
                   <BsFillMicFill
-                    className={
+                    className={[
                       roomUser.speaking
                         ? "mic-green"
-                        : "mic-gray"
-                    }
+                        : "mic-gray",
+                      shouldAnimateMic
+                        ? "mic-speaking"
+                        : ""
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     size={26}
                   />
                 )}
@@ -528,35 +683,76 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
         })}
       </section>
 
-      <section className="bottom-area">
-        <div className="music-card">
-          <h2>{room.music.title}</h2>
+      <section
+        className={`bottom-area ${
+          shouldShowMediaControls ? "media-open" : "media-closed"
+        } ${
+          mediaControlsOpen ? "media-pinned" : "media-unpinned"
+        }`}
+        onMouseEnter={() => {
+          if (!mediaControlsOpen) {
+            setMediaControlsHovered(true);
+          }
+        }}
+        onMouseLeave={() => {
+          setMediaControlsHovered(false);
+        }}
+      >
+        <button
+          type="button"
+          className="media-panel-toggle"
+          onClick={() => {
+            setMediaControlsOpen((open) => !open);
+            setMediaControlsHovered(false);
+          }}
+          aria-expanded={mediaControlsOpen}
+          aria-controls="room-media-panel"
+          title={
+            mediaControlsOpen
+              ? "Hide media controls"
+              : "Show media controls"
+          }
+        >
+          <span className="media-toggle-arrow" aria-hidden="true">
+            {mediaControlsOpen ? "⌄" : "⌃"}
+          </span>
 
-          <p>{room.music.artist}</p>
+          <span>
+            {mediaControlsOpen
+              ? "Hide media controls"
+              : "Show media controls"}
+          </span>
+        </button>
 
-          <div
-            style={{
-              margin: "12px 0",
-              padding: "10px",
-              border: "1px solid #bbb",
-              borderRadius: "10px",
-              background: "#f3f3f3"
-            }}
-          >
-            <div style={{ fontWeight: "bold", fontSize: "16px" }}>
+        <div
+          id="room-media-panel"
+          className="music-card"
+          aria-hidden={!shouldShowMediaControls}
+        >
+          <h2 className="music-title">{room.music.title}</h2>
+
+          <p className="music-artist">{room.music.artist}</p>
+
+          <div className="music-controller-details">
+            <div className="music-controller-label">
               Music Controller
             </div>
 
-            <div>{hostUser?.name}</div>
+            <div className="music-controller-user">
+              {hostUser?.name}
+            </div>
           </div>
 
-          <p>
+          <p className="music-status">
             <strong>Status:</strong>{" "}
             {room.music.playing ? "Playing" : "Paused"}
           </p>
 
           <div className="music-controls">
-            <button disabled={!isHost} onClick={() => musicAction("back")}>
+            <button
+              disabled={!isHost}
+              onClick={() => musicAction("back")}
+            >
               Back
             </button>
 
@@ -569,12 +765,19 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
               {room.music.playing ? "Pause" : "Play"}
             </button>
 
-            <button disabled={!isHost} onClick={() => musicAction("skip")}>
+            <button
+              disabled={!isHost}
+              onClick={() => musicAction("skip")}
+            >
               Skip
             </button>
           </div>
 
-          {!isHost && <p>Only the host can control music.</p>}
+          {!isHost && (
+            <p className="music-permission-note">
+              Only the host can control music.
+            </p>
+          )}
         </div>
       </section>
     </main>
