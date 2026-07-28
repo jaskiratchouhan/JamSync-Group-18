@@ -10,6 +10,9 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import dotenv from 'dotenv';
 import {io, onlineUsers} from "./socket.ts";
+
+import swaggerUi from "swagger-ui-express";
+import spec from "./swagger.ts";
 dotenv.config();
 
 declare module 'express-session' {
@@ -59,6 +62,8 @@ export const sessionSetUp = (session({
 }))
 app.use(sessionSetUp);
 
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(spec));
+
 
 
 
@@ -71,6 +76,18 @@ const client_secret = process.env.CLIENT_SECRET;
 
 
 var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
+
+/**
+* @openapi
+* /auth/spotify:
+*   get:
+*       summary: takes user to the Spotify login page
+*       tags: [Authentication]
+*       responses:
+*           302:
+*               description: takes user to Spotify's OAuth page 
+*/
+
 
 app.get('/auth/spotify', function(req, res) {
 
@@ -88,6 +105,18 @@ app.get('/auth/spotify', function(req, res) {
     }));
 });
 
+/**
+ * @openapi
+ * /auth/spotify/callback:
+ *  get:
+ *    summary: Takes care of Spotify callback after authenticating and logs user in Jamsync
+ *    tags: [Authentication]
+ *    responses:
+ *      302: 
+ *        description: Takes authenticated user to homepage of app.
+ *      500:
+ *        description: Authentication did not work.
+ */
 
 app.get('/auth/spotify/callback', async function(req, res) {
 
@@ -144,6 +173,20 @@ app.get('/auth/spotify/callback', async function(req, res) {
   }
 });
 // auth jam login
+
+/**
+ * @openapi
+ * /auth/guest:
+ *  get: 
+ *    summary: Makes a guest user
+ *    tags: [Authentication]
+ *    responses:
+ *      302:
+ *        description: Takes guest to homepage
+ *      500: 
+ *        description: Guest user creation failed.
+ */
+
 app.get("/auth/guest", async function(req,res) {
   try{
     const user = await helpers.insertBasicUser();
@@ -159,6 +202,17 @@ app.get("/auth/guest", async function(req,res) {
 
 
 var youtube_redirect_uri = 'http://127.0.0.1:3001/auth/youtube/callback';
+
+/**
+ * @openapi
+ * /auth/youtube:
+ *  get:
+ *    summary: Takes user to Youtube login page
+ *    tags: [Authentication]
+ *    responses:
+ *      302:
+ *        description: User is taken to Google's OAuth page.
+ */
 
 app.get('/auth/youtube', function(req, res) {
 
@@ -177,6 +231,18 @@ app.get('/auth/youtube', function(req, res) {
     }));
 });
 
+/**
+ * @openapi
+ * /auth/youtube/callback:
+ *  get:
+ *    summary: Takes care of Youtube callback after authenticating and logs user in Jamsync
+ *    tags: [Authentication]
+ *    responses: 
+ *      302:
+ *        description: Takes authenticated user to the homepage
+ *      500: 
+ *        description: Could not authenticate.
+ */
 
 app.get('/auth/youtube/callback', async function(req, res) {
 
@@ -233,6 +299,20 @@ app.get('/auth/youtube/callback', async function(req, res) {
   }
 });
 
+/**
+ * @openapi
+ * /api/profile:
+ *  get:
+ *    summary: Gets the authenticated user's profile
+ *    tags: [User]
+ *    responses:
+ *      200:
+ *        description: Profile was retrieved.
+ *      401: 
+ *        description: User not authenticated
+ *      404: User was not found
+ */
+
 app.get("/api/profile", async function(req,res) {
   if (!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -268,7 +348,25 @@ app.get("/api/profile", async function(req,res) {
   
 })
 
-
+/**
+ * @openapi
+ *  /api/playlists:
+ *    get:
+ *      summary: Get the playlists of the logged in user.
+ *      tags: [Music]
+ *      responses:
+ *        200:
+ *          description: Playlists retrieved
+ *        400:
+ *          description: Invalid user information
+ *        401: 
+ *          description: The user isn't authenticated
+ *      404:
+ *        description: Couldn't find the user
+ *      500:
+ *        description: Could not get the playlists.
+ *        
+ */
 app.get('/api/playlists', async function(req, res) {
 
    if (!req.session.user){
@@ -329,6 +427,23 @@ app.get('/api/playlists', async function(req, res) {
   }
 });
 
+/**
+ * @openapi
+ *  /api/top_tracks:
+ *    get:
+ *      summary: Get the most listened tracks of the user
+ *      tags: [Music]
+ *      responses: 
+ *        200:
+ *          description: Most listened to tracks retrieved.
+ *        401:
+ *          description: Not an authenticated user.
+ *        404:
+ *          description: Couldn't find the user.
+ *        500:
+ *          description: Was not successful in retrieving the tracks.
+ */
+
 app.get('/api/top_tracks', async function(req,res) {
   if(!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -379,6 +494,21 @@ app.get('/api/top_tracks', async function(req,res) {
 
 })
 
+/**
+ * @openapi
+ *  /friends/request:
+ *    post:
+ *      summary: Responsible for sending friend requests
+ *      tags: [FriendsFeature]
+ *      responses:
+ *        200:
+ *          description: Request sent.
+ *        400: 
+ *          description: Missing required information/bad request.
+ *        401:
+ *          description: User is not authenticated.
+ */
+
 app.post('/friends/request', async function(req,res) {
   if(!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -400,6 +530,21 @@ app.post('/friends/request', async function(req,res) {
 
   
 })
+
+/**
+ * @openapi
+ * /users/search:
+ *  get:
+ *    summary: Allows users to search for other users in Jamsync
+ *    tags: [FriendsFeature]
+ *    responses:
+ *      200: 
+ *        description: returns users that correspond to the entry
+ *      400:
+ *        description: Not a valid search request.
+ *      401:
+ *        description: The person making the request isn't authenticated.
+ */
 app.get('/users/search', async function(req,res){
   if(!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -413,6 +558,18 @@ app.get('/users/search', async function(req,res){
 
 })
 
+/**
+ * @openapi
+ * /friends/requests:
+ *  get:
+ *    summary: Retrieves friend requests that haven't been answered yet.
+ *    tags: [FriendsFeature]
+ *    responses:
+ *      200:
+ *        description: Shows the friend requests that still need an answer.
+ *      401: User is not authenticated.
+ */
+
 app.get('/friends/requests', async function(req,res){
   if(!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -422,6 +579,19 @@ app.get('/friends/requests', async function(req,res){
   return res.json(result);
 })
 
+/**
+ * @openapi
+ *  /friends/requests/{id}/accept:
+ *  patch:
+ *    summary: Responsible for accepting friend requests of user.
+ *    tags: [FriendsFeature]
+ *    responses:
+ *      200:
+ *        description: The friend request was accepted.
+ *      400: 
+ *        description: Request could not be accepted.
+ *      401: User not authenticated.
+ */
 app.patch('/friends/requests/:id/accept', async function(req, res){
   if (!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -434,6 +604,22 @@ app.patch('/friends/requests/:id/accept', async function(req, res){
   }
   return res.json(update); 
 })
+
+/**
+ * @openapi
+ *  /friends/requests/{id}/decline:
+ *  patch:
+ *    summary: Responsible for declining friend requests
+ *    tags: [FriendsFeature]
+ *    responses:
+ *      200:
+ *        description: Successfully declined friend request.
+ *      400: 
+ *        description: Could not decline friend request.
+ *      401:
+ *        description: The user is not authenticated. 
+ *  
+ */
 
 app.patch('/friends/requests/:id/decline', async function(req, res){
   if (!req.session.user){
@@ -448,6 +634,20 @@ app.patch('/friends/requests/:id/decline', async function(req, res){
   return res.json(update); 
 })
 
+/**
+ * @openapi
+ * /friends/grabAll:
+ *  get:
+ *    summary: Grabs the friends list
+ *    tags: [FriendsFeature]
+ *    responses:
+ *      200:
+ *        description: Successfuly grabbed friends list.
+ *      400: 
+ *        description: Could not grab friends list.
+ *      401:
+ *        description: The user is not authenticated.
+ */
 app.get('/friends/grabAll', async function(req,res) {
   if (!req.session.user){
     return res.status(401).json({error: "Not authenticated"});
@@ -462,6 +662,18 @@ app.get('/friends/grabAll', async function(req,res) {
   return res.json(usersWithStatus);
 })
 
+/**
+ * @openapi
+ *  /logout:
+ *    post: 
+ *      summary: Logs the user out of homepage.
+ *      tags: [Authentication]
+ *      responses:
+ *        200:
+ *          description: User was logged out.
+ *        500: 
+ *          description: User could not log out. 
+ */
 
 app.post('/logout', (req: Request, res: Response) => {
   req.session.destroy((err) => {

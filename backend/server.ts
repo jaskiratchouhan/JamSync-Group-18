@@ -447,6 +447,20 @@ async function leaveRoom(
 }
 //
 
+/**
+ * @openapi
+ *  /api/recent_sessions:
+ *    get:
+ *      summary: Finds the user's currently joined sesssions.
+ *      tags: [Session]
+ *      responses: 
+ *        200:
+ *          description: Lists the current sessions of the user.
+ *        401:
+ *          description: The user is not currently authenticated.
+ *        500:
+ *          description: Couldn't get the current sessions list.
+ */
 app.get('/api/recent_sessions', async function(req, res) {
 
   if (!req.session.user){

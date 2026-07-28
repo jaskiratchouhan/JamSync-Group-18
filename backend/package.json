@@ -21,7 +21,9 @@
     "express-session": "^1.19.0",
     "knex": "^3.3.0",
     "pg": "^8.22.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/connect-pg-simple": "^7.0.3",
@@ -30,6 +32,8 @@
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.2.1",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "supertest": "^7.2.2",
     "tsx": "^4.23.0",
     "typescript": "^7.0.2"
