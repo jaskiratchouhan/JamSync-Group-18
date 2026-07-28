@@ -1972,43 +1972,212 @@ html.room-dark-background {
   }
 }
 
-/* Always allow participant scrolling without showing a scrollbar. */
-.room-page .users-grid,
-.room-page .users-grid.users-grid-list {
+/* =========================================================
+   FINAL SCROLL + MEDIA FIX
+   Keep this as the final CSS block.
+   ========================================================= */
+
+/* Header takes natural space; users receive the remaining height. */
+.room-page {
+  height: 100svh !important;
+  min-height: 100svh !important;
+
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+
+  overflow: hidden !important;
+}
+
+/* Reserve room for the fixed media panel when pinned open. */
+.room-page.media-controls-pinned-open {
+  padding-bottom:
+    calc(clamp(10px, 1.8vw, 22px) + 330px) !important;
+}
+
+/* The participant section is the only scrollable area. */
+.room-page > .users-grid,
+.room-page > .users-grid.users-grid-list {
+  width: min(960px, 100%) !important;
+  height: auto !important;
+  min-width: 0 !important;
   min-height: 0 !important;
-  height: 100% !important;
+  max-height: 100% !important;
+
+  margin-inline: auto;
+  padding-bottom: 60px !important;
+
+  align-self: stretch !important;
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
+  align-items: stretch !important;
 
   overflow-y: auto !important;
   overflow-x: hidden !important;
 
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+
   scrollbar-width: none !important;
-  -ms-overflow-style: none;
-  overscroll-behavior: contain;
+  -ms-overflow-style: none !important;
 }
 
-.room-page .users-grid::-webkit-scrollbar,
-.room-page .users-grid.users-grid-list::-webkit-scrollbar {
+/* Hide the participant scrollbar without disabling scrolling. */
+.room-page > .users-grid::-webkit-scrollbar,
+.room-page > .users-grid.users-grid-list::-webkit-scrollbar {
   width: 0 !important;
   height: 0 !important;
   display: none !important;
 }
 
-/* Keep enough space so the final user can scroll above the media toggle. */
-.room-page .users-grid,
-.room-page .users-grid.users-grid-list {
-  padding-bottom: 60px !important;
+/* Cards must create overflow instead of shrinking or disappearing. */
+.room-page
+  > .users-grid.users-grid-list
+  > .user-card {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
 }
 
-/* Do not create a scrollbar inside the media controls. */
+/* Fixed media tray. */
+.room-page .bottom-area,
+.room-page .bottom-area.media-open,
+.room-page .bottom-area.media-closed,
+.room-page .bottom-area.media-pinned.media-open,
+.room-page .bottom-area.media-unpinned.media-open {
+  position: fixed !important;
+  z-index: 50;
+
+  left: 50% !important;
+  right: auto !important;
+  bottom: 0 !important;
+
+  width: min(880px, calc(100vw - 20px)) !important;
+  max-height: 100svh !important;
+  margin: 0 !important;
+
+  display: flex !important;
+  flex-direction: column-reverse !important;
+  align-items: center !important;
+
+  overflow: visible !important;
+  transform: translateX(-50%) !important;
+  pointer-events: none;
+}
+
+/* Fully open media card with all buttons visible. */
 .room-page .bottom-area.media-open .music-card {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+
+  width: 100% !important;
   height: auto !important;
-  max-height: none !important;
+  max-height: 290px !important;
+
+  margin: 0 !important;
+  padding: 16px 20px 18px !important;
+
+  border-width: 2px !important;
 
   overflow: hidden !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+
+  transform: none !important;
 }
 
-/* Keep media buttons fully visible without internal scrolling. */
+/* Ensure the media control row and every button are displayed. */
 .room-page .bottom-area.media-open .music-controls {
-  flex-shrink: 0;
-  padding-bottom: 8px;
+  width: 100% !important;
+  margin-top: 10px !important;
+  padding-bottom: 4px !important;
+
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 10px !important;
+
+  overflow: visible !important;
+}
+
+.room-page .bottom-area.media-open .music-controls button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 1 110px !important;
+  min-width: 80px !important;
+  min-height: 40px !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Only the closed state clips and hides the media card. */
+.room-page .bottom-area.media-closed .music-card {
+  position: relative !important;
+
+  width: 100% !important;
+  height: 0 !important;
+  max-height: 0 !important;
+
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+
+  border-width: 0 !important;
+
+  overflow: hidden !important;
+
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Toggle remains available at the viewport bottom. */
+.room-page .media-panel-toggle {
+  flex: 0 0 auto;
+  pointer-events: auto !important;
+}
+
+@media (max-width: 700px) {
+  .room-page {
+    padding: 7px 7px 44px !important;
+  }
+
+  .room-page.media-controls-pinned-open {
+    padding-bottom: 255px !important;
+  }
+
+  .room-page > .users-grid,
+  .room-page > .users-grid.users-grid-list {
+    width: 100% !important;
+    padding-bottom: 52px !important;
+  }
+
+  .room-page .bottom-area,
+  .room-page .bottom-area.media-open,
+  .room-page .bottom-area.media-closed,
+  .room-page .bottom-area.media-pinned.media-open,
+  .room-page .bottom-area.media-unpinned.media-open {
+    width: calc(100vw - 14px) !important;
+  }
+
+  .room-page .bottom-area.media-open .music-card {
+    max-height: 215px !important;
+    padding: 9px 10px 12px !important;
+  }
+
+  .room-page .bottom-area.media-open .music-controls {
+    margin-top: 6px !important;
+    gap: 5px !important;
+  }
+
+  .room-page .bottom-area.media-open .music-controls button {
+    flex-basis: 70px !important;
+    min-width: 65px !important;
+    min-height: 34px !important;
+  }
 }
