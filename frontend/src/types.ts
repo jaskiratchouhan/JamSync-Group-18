@@ -19,6 +19,7 @@ export type MusicState = {
   provider: string | null;
   providerTrackId: string | null;
   songId: number | null;
+  crossPlatformStatus: string | null;
 };
 
 export type RoomState = {

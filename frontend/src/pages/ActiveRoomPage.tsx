@@ -534,6 +534,22 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
           <p>{room.music.artist}</p>
 
+          {room.music.crossPlatformStatus === "unmatched" && (
+            <p
+              style={{
+                display: "inline-block",
+                margin: "4px 0",
+                padding: "3px 8px",
+                borderRadius: "8px",
+                background: "#ffe0b2",
+                color: "#8a4b00",
+                fontSize: "13px"
+              }}
+            >
+              Not available on your platform
+            </p>
+          )}
+
           <div
             style={{
               margin: "12px 0",

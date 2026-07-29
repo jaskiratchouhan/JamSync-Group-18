@@ -42,6 +42,7 @@ type Room = {
     provider: string | null;
     providerTrackId: string | null;
     songId: number | null;
+    crossPlatformStatus: string | null;
   };
 };
 
@@ -63,7 +64,8 @@ function getRoom(roomId: string): Room {
         currentTime: 0,
         provider: null,
         providerTrackId: null,
-        songId: null
+        songId: null,
+        crossPlatformStatus: null
       }
     };
   }
@@ -79,12 +81,15 @@ async function persistCurrentSong(room: Room) {
     const existing = await helpers.findSongProviderByProviderId(m.provider, m.providerTrackId);
     if (existing) {
       m.songId = existing.song_id;
-      return;
+    } else {
+      const song = await helpers.insertSong(m.title, m.artist);
+      await helpers.upsertSongProvider(song.id, m.provider, m.providerTrackId);
+      m.songId = song.id;
     }
 
-    const song = await helpers.insertSong(m.title, m.artist);
-    await helpers.upsertSongProvider(song.id, m.provider, m.providerTrackId);
-    m.songId = song.id;
+    const providers = await helpers.findProvidersBySongId(m.songId);
+    const platforms = new Set(providers.map((p) => p.provider));
+    m.crossPlatformStatus = platforms.size > 1 ? "matched" : "unmatched";
   } catch (err) {
     console.error("persistCurrentSong failed", err);
   }
@@ -336,7 +341,8 @@ io.on("connection", (socket) => {
         currentTime: 0,
         provider: null,
         providerTrackId: null,
-        songId: null
+        songId: null,
+        crossPlatformStatus: null
       };
     }
 
@@ -348,7 +354,8 @@ io.on("connection", (socket) => {
         currentTime: 0,
         provider: null,
         providerTrackId: null,
-        songId: null
+        songId: null,
+        crossPlatformStatus: null
       };
     }
 
@@ -370,7 +377,8 @@ io.on("connection", (socket) => {
       currentTime: 0,
       provider: song.provider,
       providerTrackId: song.providerTrackId,
-      songId: null
+      songId: null,
+      crossPlatformStatus: null
     };
 
     await persistCurrentSong(room);
