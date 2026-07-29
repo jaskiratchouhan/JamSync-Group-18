@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
 import { QRCodeCanvas } from "qrcode.react";
-import type { RoomState, User } from "../types";
+import type { RoomState, User, SongResult } from "../types";
 
 declare global {
   interface Window {
@@ -48,6 +48,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [localMutedUsers, setLocalMutedUsers] = useState<string[]>([]);
   const [selfMuted, setSelfMuted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SongResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const selfMutedRef = useRef(false);
 
   const currentRoomIdRef = useRef<string | null>(roomId);
@@ -392,6 +396,36 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     });
   }
 
+  function searchSongs() {
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    setSearchError("");
+
+    socket.emit(
+      "music:search",
+      { dbUserId: user.dbUserId, query: searchQuery },
+      (response: { results?: SongResult[]; error?: string }) => {
+        setSearching(false);
+        if (response?.error) setSearchError(response.error);
+        setSearchResults(response?.results ?? []);
+      }
+    );
+  }
+
+  function selectSong(result: SongResult) {
+    if (!currentRoomId) return;
+
+    socket.emit("music:select", {
+      roomId: currentRoomId,
+      requesterId: user.id,
+      song: result
+    });
+
+    setSearchResults([]);
+    setSearchQuery("");
+  }
+
   function leaveRoom() {
     if (!currentRoomIdRef.current) return;
 
@@ -548,6 +582,55 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             >
               Not available on your platform
             </p>
+          )}
+
+          {room.music.providers.length > 0 && (
+            <p style={{ fontSize: "13px", color: "#555" }}>
+              Available on: {room.music.providers.join(", ")}
+            </p>
+          )}
+
+          {isHost && (
+            <div style={{ margin: "10px 0" }}>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  type="text"
+                  placeholder="Search a song…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchSongs()}
+                  style={{ flex: 1, padding: "6px" }}
+                />
+                <button onClick={searchSongs} disabled={searching}>
+                  {searching ? "Searching…" : "Search"}
+                </button>
+              </div>
+
+              {searchError && (
+                <p style={{ color: "#b00", fontSize: "13px" }}>{searchError}</p>
+              )}
+
+              {searchResults.length > 0 && (
+                <ul style={{ listStyle: "none", padding: 0, margin: "8px 0" }}>
+                  {searchResults.map((result) => (
+                    <li
+                      key={result.providerTrackId}
+                      onClick={() => selectSong(result)}
+                      style={{
+                        padding: "6px 8px",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        marginBottom: "4px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      <strong>{result.title}</strong>
+                      <span style={{ color: "#666" }}> — {result.artist}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           <div

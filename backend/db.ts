@@ -170,6 +170,11 @@ const helpers = {
         const result = await pool.query(q, [id]);
         return result.rows[0];
     },
+    async getUserTokenByPlatform(platform: string): Promise<User | undefined> {
+        const q = `SELECT * FROM users WHERE platform = $1 AND access_token IS NOT NULL AND (token_expires_at IS NULL OR token_expires_at > now()) ORDER BY token_expires_at DESC NULLS LAST LIMIT 1`;
+        const result = await pool.query(q, [platform]);
+        return result.rows[0];
+    },
     async deleteUser(id: number){
         const q = `DELETE FROM users WHERE id = $1`;
         await pool.query(q,[id]);
