@@ -46,6 +46,21 @@ export interface Friend {
     created_at: Date;
 }
 
+export interface Song {
+    id: number;
+    title: string;
+    artist: string | null;
+    created_at: Date;
+}
+
+export interface SongProvider {
+    id: number;
+    song_id: number;
+    provider: string;
+    provider_track_id: string;
+    created_at: Date;
+}
+
 
 const helpers = {
     //  init: async()=> {
