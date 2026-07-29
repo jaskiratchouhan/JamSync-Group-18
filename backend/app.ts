@@ -310,7 +310,8 @@ app.get('/auth/youtube/callback', async function(req, res) {
  *        description: Profile was retrieved.
  *      401: 
  *        description: User not authenticated
- *      404: User was not found
+ *      404: 
+ *        description: User was not found
  */
 
 app.get("/api/profile", async function(req,res) {
@@ -500,6 +501,15 @@ app.get('/api/top_tracks', async function(req,res) {
  *    post:
  *      summary: Responsible for sending friend requests
  *      tags: [FriendsFeature]
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                requestee_id:
+ *                  type: integer
  *      responses:
  *        200:
  *          description: Request sent.
@@ -537,6 +547,13 @@ app.post('/friends/request', async function(req,res) {
  *  get:
  *    summary: Allows users to search for other users in Jamsync
  *    tags: [FriendsFeature]
+ *    parameters:
+ *      - in: query
+ *        name: name
+ *        required: true
+ *        schema:
+ *          type: string
+ * 
  *    responses:
  *      200: 
  *        description: returns users that correspond to the entry
@@ -567,7 +584,8 @@ app.get('/users/search', async function(req,res){
  *    responses:
  *      200:
  *        description: Shows the friend requests that still need an answer.
- *      401: User is not authenticated.
+ *      401: 
+ *        description: User is not authenticated.
  */
 
 app.get('/friends/requests', async function(req,res){
@@ -585,12 +603,19 @@ app.get('/friends/requests', async function(req,res){
  *  patch:
  *    summary: Responsible for accepting friend requests of user.
  *    tags: [FriendsFeature]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        required: true
+ *        schema:
+ *          type: integer
  *    responses:
  *      200:
  *        description: The friend request was accepted.
  *      400: 
  *        description: Request could not be accepted.
- *      401: User not authenticated.
+ *      401: 
+ *        description: User not authenticated.
  */
 app.patch('/friends/requests/:id/accept', async function(req, res){
   if (!req.session.user){
@@ -611,6 +636,13 @@ app.patch('/friends/requests/:id/accept', async function(req, res){
  *  patch:
  *    summary: Responsible for declining friend requests
  *    tags: [FriendsFeature]
+ *    parameters:
+ *      - in: path
+ *        name:id
+ *        required: true
+ *        schema:
+ *          type: integer
+ *      
  *    responses:
  *      200:
  *        description: Successfully declined friend request.

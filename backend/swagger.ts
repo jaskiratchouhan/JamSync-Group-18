@@ -8,7 +8,7 @@ const spec = swaggerJSDoc({
       version: "1.0.0",
       description: "JamSync API — documented with swagger-jsdoc.",
     },
-    servers: [{ url: "http://localhost:3001" }],
+    servers: [{ url: "http://127.0.0.1:3001" }],
   },
 
   apis: ["./*.ts"],
