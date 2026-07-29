@@ -428,6 +428,43 @@ app.get('/api/playlists', async function(req, res) {
   }
 });
 
+
+
+/**
+ * @openapi
+ *  /api/recent_sessions:
+ *    get:
+ *      summary: Finds the user's currently joined sesssions.
+ *      tags: [Session]
+ *      responses: 
+ *        200:
+ *          description: Lists the current sessions of the user.
+ *        401:
+ *          description: The user is not currently authenticated.
+ *        500:
+ *          description: Couldn't get the current sessions list.
+ */
+app.get('/api/recent_sessions', async function(req, res) {
+
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const userId = Number(req.session.user.userId);
+
+
+  try {
+    const sessions = await helpers.getUserCurrentSessions(userId)
+
+    return res.json(sessions);
+  } catch(err) {
+    console.error("Unable to get user's sessions:", err);
+    return res.status(500).json({
+      error: "Unable to get user's sessions"
+    })
+  }
+})
+
+
 /**
  * @openapi
  *  /api/top_tracks:
@@ -553,7 +590,6 @@ app.post('/friends/request', async function(req,res) {
  *        required: true
  *        schema:
  *          type: string
- * 
  *    responses:
  *      200: 
  *        description: returns users that correspond to the entry
@@ -638,11 +674,10 @@ app.patch('/friends/requests/:id/accept', async function(req, res){
  *    tags: [FriendsFeature]
  *    parameters:
  *      - in: path
- *        name:id
+ *        name: id
  *        required: true
  *        schema:
  *          type: integer
- *      
  *    responses:
  *      200:
  *        description: Successfully declined friend request.
