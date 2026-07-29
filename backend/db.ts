@@ -361,6 +361,12 @@ const helpers = {
         return result.rows[0];
     },
 
+    async getSongById(id: number): Promise<Song | undefined> {
+        const q = `SELECT * FROM songs WHERE id = $1`;
+        const result = await pool.query(q, [id]);
+        return result.rows[0];
+    },
+
     async upsertSongProvider(song_id: number, provider: string, provider_track_id: string): Promise<SongProvider> {
         const q = `
             INSERT INTO song_providers(song_id, provider, provider_track_id)
