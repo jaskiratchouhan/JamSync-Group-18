@@ -39,6 +39,9 @@ type Room = {
     artist: string;
     playing: boolean;
     currentTime: number;
+    provider: string | null;
+    providerTrackId: string | null;
+    songId: number | null;
   };
 };
 
@@ -57,12 +60,34 @@ function getRoom(roomId: string): Room {
         title: "Default JamSync Song",
         artist: "Prototype Artist",
         playing: false,
-        currentTime: 0
+        currentTime: 0,
+        provider: null,
+        providerTrackId: null,
+        songId: null
       }
     };
   }
 
   return rooms[roomId];
+}
+
+async function persistCurrentSong(room: Room) {
+  const m = room.music;
+  if (!m.provider || !m.providerTrackId) return;
+
+  try {
+    const existing = await helpers.findSongProviderByProviderId(m.provider, m.providerTrackId);
+    if (existing) {
+      m.songId = existing.song_id;
+      return;
+    }
+
+    const song = await helpers.insertSong(m.title, m.artist);
+    await helpers.upsertSongProvider(song.id, m.provider, m.providerTrackId);
+    m.songId = song.id;
+  } catch (err) {
+    console.error("persistCurrentSong failed", err);
+  }
 }
 
 function makeRoomUser(
@@ -289,7 +314,7 @@ io.on("connection", (socket) => {
     }, 2500);
   });
 
-  socket.on("music:action", ({ roomId, requesterId, action }) => {
+  socket.on("music:action", async ({ roomId, requesterId, action }) => {
     const room = rooms[roomId];
     if (!room) return;
 
@@ -308,7 +333,10 @@ io.on("connection", (socket) => {
         title: "Next Default Song",
         artist: "JamSync Bot",
         playing: true,
-        currentTime: 0
+        currentTime: 0,
+        provider: null,
+        providerTrackId: null,
+        songId: null
       };
     }
 
@@ -317,10 +345,35 @@ io.on("connection", (socket) => {
         title: "Previous Default Song",
         artist: "JamSync Bot",
         playing: true,
-        currentTime: 0
+        currentTime: 0,
+        provider: null,
+        providerTrackId: null,
+        songId: null
       };
     }
 
+    await persistCurrentSong(room);
+    io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("music:select", async ({ roomId, requesterId, song }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (room.hostId !== requesterId) return;
+    if (!song || !song.provider || !song.providerTrackId) return;
+
+    room.music = {
+      title: song.title ?? "Unknown Title",
+      artist: song.artist ?? "Unknown Artist",
+      playing: true,
+      currentTime: 0,
+      provider: song.provider,
+      providerTrackId: song.providerTrackId,
+      songId: null
+    };
+
+    await persistCurrentSong(room);
     io.to(roomId).emit("room:update", room);
   });
 
