@@ -1,0 +1,297 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "JamSync API",
+    "version": "1.0.0",
+    "description": "JamSync API — documented with swagger-jsdoc."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001"
+    }
+  ],
+  "paths": {
+    "/api/recent_sessions": {
+      "get": {
+        "summary": "Finds the user's currently joined sesssions.",
+        "tags": [
+          "Session"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lists the current sessions of the user."
+          },
+          "401": {
+            "description": "The user is not currently authenticated."
+          },
+          "500": {
+            "description": "Couldn't get the current sessions list."
+          }
+        }
+      }
+    },
+    "/auth/spotify": {
+      "get": {
+        "summary": "takes user to the Spotify login page",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "302": {
+            "description": "takes user to Spotify's OAuth page"
+          }
+        }
+      }
+    },
+    "/auth/spotify/callback": {
+      "get": {
+        "summary": "Takes care of Spotify callback after authenticating and logs user in Jamsync",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "302": {
+            "description": "Takes authenticated user to homepage of app."
+          },
+          "500": {
+            "description": "Authentication did not work."
+          }
+        }
+      }
+    },
+    "/auth/guest": {
+      "get": {
+        "summary": "Makes a guest user",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "302": {
+            "description": "Takes guest to homepage"
+          },
+          "500": {
+            "description": "Guest user creation failed."
+          }
+        }
+      }
+    },
+    "/auth/youtube": {
+      "get": {
+        "summary": "Takes user to Youtube login page",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "302": {
+            "description": "User is taken to Google's OAuth page."
+          }
+        }
+      }
+    },
+    "/auth/youtube/callback": {
+      "get": {
+        "summary": "Takes care of Youtube callback after authenticating and logs user in Jamsync",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "302": {
+            "description": "Takes authenticated user to the homepage"
+          },
+          "500": {
+            "description": "Could not authenticate."
+          }
+        }
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "summary": "Gets the authenticated user's profile",
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile was retrieved."
+          },
+          "401": {
+            "description": "User not authenticated"
+          },
+          "404": "User was not found"
+        }
+      }
+    },
+    "/api/playlists": {
+      "get": {
+        "404": {
+          "description": "Couldn't find the user"
+        },
+        "500": {
+          "description": "Could not get the playlists."
+        },
+        "summary": "Get the playlists of the logged in user.",
+        "tags": [
+          "Music"
+        ],
+        "responses": {
+          "200": {
+            "description": "Playlists retrieved"
+          },
+          "400": {
+            "description": "Invalid user information"
+          },
+          "401": {
+            "description": "The user isn't authenticated"
+          }
+        }
+      }
+    },
+    "/api/top_tracks": {
+      "get": {
+        "summary": "Get the most listened tracks of the user",
+        "tags": [
+          "Music"
+        ],
+        "responses": {
+          "200": {
+            "description": "Most listened to tracks retrieved."
+          },
+          "401": {
+            "description": "Not an authenticated user."
+          },
+          "404": {
+            "description": "Couldn't find the user."
+          },
+          "500": {
+            "description": "Was not successful in retrieving the tracks."
+          }
+        }
+      }
+    },
+    "/friends/request": {
+      "post": {
+        "summary": "Responsible for sending friend requests",
+        "tags": [
+          "FriendFeature"
+        ],
+        "responses": {
+          "200": {
+            "description": "Request sent."
+          },
+          "400": {
+            "description": "Missing required information/bad request."
+          },
+          "401": {
+            "description": "User is not authenticated."
+          }
+        }
+      }
+    },
+    "/users/search": {
+      "get": {
+        "summary": "Allows users to search for other users in Jamsync",
+        "tags": [
+          "FriendsFeature"
+        ],
+        "responses": {
+          "200": {
+            "description": "returns users that correspond to the entry"
+          },
+          "400": {
+            "description": "Not a valid search request."
+          },
+          "401": {
+            "description": "The person making the request isn't authenticated."
+          }
+        }
+      }
+    },
+    "/friends/requests": {
+      "get": {
+        "summary": "Retrieves friend quests that haven't been answered yet.",
+        "tags": [
+          "FriendFeature"
+        ],
+        "responses": {
+          "200": {
+            "description": "Shows the friend requests that still need an answer."
+          },
+          "401": "User is not authenticated."
+        }
+      }
+    },
+    "/friends/requests/{id}/accept": {
+      "patch": {
+        "summary": "Responsible for accepting friend requests of user.",
+        "tags": [
+          "FriendFeature"
+        ],
+        "responses": {
+          "200": {
+            "description": "The friend request was accepted."
+          },
+          "400": {
+            "description": "Request could not be accepted."
+          },
+          "401": "User not authenticated."
+        }
+      }
+    },
+    "/friends/requests/{id}/decline": {
+      "patch": {
+        "summary": "Responsible for declaining friend requests",
+        "tags": [
+          "FriendsFeature"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully declined friend request."
+          },
+          "400": {
+            "description": "Could not decline friend request."
+          },
+          "401": {
+            "description": "The user is not authenticated."
+          }
+        }
+      }
+    },
+    "/friends/grabAll": {
+      "get": {
+        "summary": "Grabs the friends list",
+        "tags": [
+          "FriendsFeature"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfuly grabbed friends list."
+          },
+          "400": {
+            "description": "Could not grab friends list."
+          },
+          "401": {
+            "description": "The user is not authenticated."
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "summary": "Logs the user out of homepage.",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "User was logged out."
+          },
+          "500": {
+            "description": "User could not log out."
+          }
+        }
+      }
+    }
+  },
+  "components": {},
+  "tags": []
+}
