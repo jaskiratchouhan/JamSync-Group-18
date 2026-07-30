@@ -88,6 +88,11 @@ button:disabled {
   align-items: flex-end;
   
 }
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
 .info p:first-child{
   color: white;
   font-size: 20px;
