@@ -103,9 +103,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
   async function fetchSpotifyToken(): Promise<string | null> {
     try {
-      const res = await fetch("http://127.0.0.1:3001/api/spotify-token", {
-        credentials: "include"
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001"}/api/spotify-token`,
+        { credentials: "include" }
+      );
       if (!res.ok) return null;
       const data = await res.json();
       spotifyTokenRef.current = data.accessToken;
