@@ -16,6 +16,18 @@ export type MusicState = {
   artist: string;
   playing: boolean;
   currentTime: number;
+  provider: string | null;
+  providerTrackId: string | null;
+  songId: number | null;
+  crossPlatformStatus: string | null;
+  providers: string[];
+};
+
+export type SongResult = {
+  provider: string;
+  providerTrackId: string;
+  title: string;
+  artist: string;
 };
 
 export type RoomState = {

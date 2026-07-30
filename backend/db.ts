@@ -46,6 +46,21 @@ export interface Friend {
     created_at: Date;
 }
 
+export interface Song {
+    id: number;
+    title: string;
+    artist: string | null;
+    created_at: Date;
+}
+
+export interface SongProvider {
+    id: number;
+    song_id: number;
+    provider: string;
+    provider_track_id: string;
+    created_at: Date;
+}
+
 
 const helpers = {
     //  init: async()=> {
@@ -153,6 +168,11 @@ const helpers = {
     async getUserById(id: number){
         const q = `SELECT * FROM users WHERE id = $1`;
         const result = await pool.query(q, [id]);
+        return result.rows[0];
+    },
+    async getUserTokenByPlatform(platform: string): Promise<User | undefined> {
+        const q = `SELECT * FROM users WHERE platform = $1 AND access_token IS NOT NULL AND (token_expires_at IS NULL OR token_expires_at > now()) ORDER BY token_expires_at DESC NULLS LAST LIMIT 1`;
+        const result = await pool.query(q, [platform]);
         return result.rows[0];
     },
     async deleteUser(id: number){
@@ -338,6 +358,41 @@ const helpers = {
     async deleteFriendRequest(id: number){
         const q = `DELETE FROM friends WHERE id = $1`;
         await pool.query(q,[id]);
+    },
+
+    async insertSong(title: string, artist: string | null): Promise<Song> {
+        const q = `INSERT INTO songs(title, artist) VALUES ($1, $2) RETURNING *`;
+        const result = await pool.query(q, [title, artist]);
+        return result.rows[0];
+    },
+
+    async getSongById(id: number): Promise<Song | undefined> {
+        const q = `SELECT * FROM songs WHERE id = $1`;
+        const result = await pool.query(q, [id]);
+        return result.rows[0];
+    },
+
+    async upsertSongProvider(song_id: number, provider: string, provider_track_id: string): Promise<SongProvider> {
+        const q = `
+            INSERT INTO song_providers(song_id, provider, provider_track_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT(provider, provider_track_id) DO UPDATE SET song_id = EXCLUDED.song_id
+            RETURNING *
+        `;
+        const result = await pool.query(q, [song_id, provider, provider_track_id]);
+        return result.rows[0];
+    },
+
+    async findSongProviderByProviderId(provider: string, provider_track_id: string): Promise<SongProvider | undefined> {
+        const q = `SELECT * FROM song_providers WHERE provider = $1 AND provider_track_id = $2`;
+        const result = await pool.query(q, [provider, provider_track_id]);
+        return result.rows[0];
+    },
+
+    async findProvidersBySongId(song_id: number): Promise<SongProvider[]> {
+        const q = `SELECT * FROM song_providers WHERE song_id = $1`;
+        const result = await pool.query(q, [song_id]);
+        return result.rows;
     }
 
 }

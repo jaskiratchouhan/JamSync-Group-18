@@ -9,6 +9,8 @@ import { Server, Socket} from "socket.io";
 // import dotenv from 'dotenv';
 import app, {sessionSetUp} from "./app.ts";
 import {io, onlineUsers} from "./socket.ts";
+import {searchProvider} from "./music/providers.ts";
+import {looksLikeMatch} from "./music/normalize.ts";
 
 const server = http.createServer(app);
 io.attach(server);
@@ -39,6 +41,11 @@ type Room = {
     artist: string;
     playing: boolean;
     currentTime: number;
+    provider: string | null;
+    providerTrackId: string | null;
+    songId: number | null;
+    crossPlatformStatus: string | null;
+    providers: string[];
   };
 };
 
@@ -57,12 +64,65 @@ function getRoom(roomId: string): Room {
         title: "Default JamSync Song",
         artist: "Prototype Artist",
         playing: false,
-        currentTime: 0
+        currentTime: 0,
+        provider: null,
+        providerTrackId: null,
+        songId: null,
+        crossPlatformStatus: null,
+        providers: []
       }
     };
   }
 
   return rooms[roomId];
+}
+
+async function applyProviderStatus(m: Room["music"]) {
+  if (!m.songId) return;
+  const providers = await helpers.findProvidersBySongId(m.songId);
+  m.providers = [...new Set(providers.map((p) => p.provider))];
+  m.crossPlatformStatus = m.providers.length > 1 ? "matched" : "unmatched";
+}
+
+async function persistCurrentSong(room: Room) {
+  const m = room.music;
+  if (!m.provider || !m.providerTrackId) return;
+
+  try {
+    const existing = await helpers.findSongProviderByProviderId(m.provider, m.providerTrackId);
+    if (existing) {
+      m.songId = existing.song_id;
+    } else {
+      const song = await helpers.insertSong(m.title, m.artist);
+      await helpers.upsertSongProvider(song.id, m.provider, m.providerTrackId);
+      m.songId = song.id;
+    }
+
+    await applyProviderStatus(m);
+  } catch (err) {
+    console.error("persistCurrentSong failed", err);
+  }
+}
+
+async function mapCrossPlatform(m: Room["music"]) {
+  if (!m.songId || !m.provider) return;
+
+  const targets = ["youtube", "spotify"].filter((p) => p !== m.provider);
+  for (const platform of targets) {
+    try {
+      const tokenUser = await helpers.getUserTokenByPlatform(platform);
+      if (!tokenUser?.access_token) continue;
+
+      const hits = await searchProvider(platform, `${m.title} ${m.artist}`, tokenUser.access_token);
+      const hit = hits.find((h) => looksLikeMatch(h.title, m.title)) ?? hits[0];
+      if (hit) await helpers.upsertSongProvider(m.songId, platform, hit.providerTrackId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("mapCrossPlatform failed for", platform, message);
+    }
+  }
+
+  await applyProviderStatus(m);
 }
 
 function makeRoomUser(
@@ -289,7 +349,7 @@ io.on("connection", (socket) => {
     }, 2500);
   });
 
-  socket.on("music:action", ({ roomId, requesterId, action }) => {
+  socket.on("music:action", async ({ roomId, requesterId, action }) => {
     const room = rooms[roomId];
     if (!room) return;
 
@@ -308,7 +368,12 @@ io.on("connection", (socket) => {
         title: "Next Default Song",
         artist: "JamSync Bot",
         playing: true,
-        currentTime: 0
+        currentTime: 0,
+        provider: null,
+        providerTrackId: null,
+        songId: null,
+        crossPlatformStatus: null,
+        providers: []
       };
     }
 
@@ -317,11 +382,62 @@ io.on("connection", (socket) => {
         title: "Previous Default Song",
         artist: "JamSync Bot",
         playing: true,
-        currentTime: 0
+        currentTime: 0,
+        provider: null,
+        providerTrackId: null,
+        songId: null,
+        crossPlatformStatus: null,
+        providers: []
       };
     }
 
+    await persistCurrentSong(room);
     io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("music:select", async ({ roomId, requesterId, song }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (room.hostId !== requesterId) return;
+    if (!song || !song.provider || !song.providerTrackId) return;
+
+    room.music = {
+      title: song.title ?? "Unknown Title",
+      artist: song.artist ?? "Unknown Artist",
+      playing: true,
+      currentTime: 0,
+      provider: song.provider,
+      providerTrackId: song.providerTrackId,
+      songId: null,
+      crossPlatformStatus: null,
+      providers: []
+    };
+
+    await persistCurrentSong(room);
+    await mapCrossPlatform(room.music);
+    io.to(roomId).emit("room:update", room);
+  });
+
+  socket.on("music:search", async ({ dbUserId, query }, callback) => {
+    try {
+      if (!query || !dbUserId) {
+        callback?.({ results: [] });
+        return;
+      }
+
+      const user = await helpers.getUserById(dbUserId);
+      if (!user?.platform || !user.access_token) {
+        callback?.({ results: [], error: "No connected music account" });
+        return;
+      }
+
+      const results = await searchProvider(user.platform, query, user.access_token);
+      callback?.({ results, platform: user.platform });
+    } catch (err) {
+      console.error("music:search failed", err);
+      callback?.({ results: [], error: "Search failed" });
+    }
   });
 
   socket.on("webrtc:offer", ({ targetSocketId, offer, fromSocketId }) => {
