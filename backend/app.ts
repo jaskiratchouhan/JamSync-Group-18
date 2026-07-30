@@ -92,7 +92,7 @@ var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 app.get('/auth/spotify', function(req, res) {
 
   var state = helpers.generateRandomString(16);
-  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify user-top-read';
+  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify user-top-read streaming user-read-playback-state user-modify-playback-state';
 
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -493,6 +493,20 @@ app.get('/api/top_tracks', async function(req,res) {
     })
   }
 
+})
+
+app.get('/api/spotify-token', async function(req,res) {
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+
+  const user = await helpers.getUserById(Number(req.session.user.userId));
+
+  if(!user || user.platform !== "spotify" || !user.access_token){
+    return res.status(400).json({error: "No Spotify account connected"});
+  }
+
+  return res.json({accessToken: user.access_token});
 })
 
 /**
