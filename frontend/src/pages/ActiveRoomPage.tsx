@@ -530,18 +530,17 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
               const iframe = event.target.getIframe();
 
-              iframe.title = "JamSync YouTube player";
+              iframe.title = "JamSync YouTube audio player";
 
               iframe.setAttribute(
                 "allow",
-                "autoplay; encrypted-media; picture-in-picture"
+                "autoplay; encrypted-media"
               );
 
-              iframe.style.display = "block";
-              iframe.style.width = "100%";
-              iframe.style.height = "auto";
-              iframe.style.aspectRatio = "16 / 9";
+              iframe.style.width = "1px";
+              iframe.style.height = "1px";
               iframe.style.border = "0";
+              iframe.style.pointerEvents = "none";
 
               setYoutubePlayerReady(true);
             },
@@ -890,14 +889,16 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
           <p>{room.music.artist}</p>
 
           <div
+            aria-hidden="true"
             style={{
-              display: youtubeVideoId ? "block" : "none",
-              width: "100%",
-              maxWidth: "720px",
-              margin: "12px auto",
+              position: "absolute",
+              width: "1px",
+              height: "1px",
               overflow: "hidden",
-              borderRadius: "12px",
-              background: "#000"
+              opacity: 0,
+              pointerEvents: "none",
+              left: "-9999px",
+              top: "-9999px"
             }}
           >
             <div ref={youtubePlayerElementRef} />
