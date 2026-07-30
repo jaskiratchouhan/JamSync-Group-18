@@ -434,7 +434,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       userId: user.id
     });
 
-    window.location.href = "/";
+    window.location.href = `/homepage?userId=${user.dbUserId}`;
   }
 
   if (roomError) {
