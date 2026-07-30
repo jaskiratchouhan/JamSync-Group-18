@@ -99,63 +99,74 @@ function loadYouTubeIframeApi(): Promise<YouTubeNamespace> {
     return youtubeApiPromise;
   }
 
-  youtubeApiPromise = new Promise<YouTubeNamespace>((resolve, reject) => {
-    let completed = false;
+  youtubeApiPromise = new Promise<YouTubeNamespace>(
+    (resolve, reject) => {
+      let finished = false;
 
-    const succeed = () => {
-      if (completed) return;
+      const checkReady = () => {
+        if (finished || !window.YT?.Player) return;
 
-      if (!window.YT?.Player) {
-        reject(new Error("YouTube IFrame API loaded without YT.Player."));
-        return;
+        finished = true;
+        window.clearInterval(checkInterval);
+        window.clearTimeout(timeout);
+
+        resolve(window.YT);
+      };
+
+      const fail = () => {
+        if (finished) return;
+
+        finished = true;
+        window.clearInterval(checkInterval);
+        window.clearTimeout(timeout);
+
+        youtubeApiPromise = null;
+
+        reject(
+          new Error("Failed to load the YouTube IFrame API.")
+        );
+      };
+
+      const existingScript =
+        document.querySelector<HTMLScriptElement>(
+          'script[src="https://www.youtube.com/iframe_api"]'
+        );
+
+      if (!existingScript) {
+        const script = document.createElement("script");
+
+        script.src = "https://www.youtube.com/iframe_api";
+        script.async = true;
+        script.onerror = fail;
+
+        document.head.appendChild(script);
+      } else {
+        existingScript.addEventListener("error", fail, {
+          once: true
+        });
       }
 
-      completed = true;
-      resolve(window.YT);
-    };
+      const previousReadyHandler =
+        window.onYouTubeIframeAPIReady;
 
-    const fail = () => {
-      if (completed) return;
+      window.onYouTubeIframeAPIReady = () => {
+        previousReadyHandler?.();
+        checkReady();
+      };
 
-      completed = true;
-      youtubeApiPromise = null;
-      reject(new Error("Failed to load the YouTube IFrame API."));
-    };
-
-    const previousReadyHandler = window.onYouTubeIframeAPIReady;
-
-    window.onYouTubeIframeAPIReady = () => {
-      previousReadyHandler?.();
-      succeed();
-    };
-
-    const existingScript =
-      document.querySelector<HTMLScriptElement>(
-        'script[src="https://www.youtube.com/iframe_api"]'
+      const checkInterval = window.setInterval(
+        checkReady,
+        250
       );
 
-    if (!existingScript) {
-      const script = document.createElement("script");
+      const timeout = window.setTimeout(
+        fail,
+        30000
+      );
 
-      script.src = "https://www.youtube.com/iframe_api";
-      script.async = true;
-      script.onerror = fail;
-
-      document.head.appendChild(script);
-    } else {
-      existingScript.addEventListener("error", fail, {
-        once: true
-      });
+      checkReady();
     }
-
-    window.setTimeout(() => {
-      if (window.YT?.Player) {
-        succeed();
-      } else {
-        fail();
-      }
-    }, 15000);
-  });
+  );
 
   return youtubeApiPromise;
 }
@@ -248,8 +259,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
       const volume = Math.sqrt(sum / data.length);
       const isSpeaking = volume > 5;
-
-      console.log("mic volume:", volume);
 
       socket.emit("voice:speaking", {
         roomId: currentRoomIdRef.current,
@@ -633,6 +642,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       lastLoadedYouTubeVideoIdRef.current = youtubeVideoId;
 
       if (youtubeShouldPlay) {
+        console.log("Loading video:", youtubeVideoId);
         player.loadVideoById({
           videoId: youtubeVideoId,
           startSeconds: safeStartTime
