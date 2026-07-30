@@ -604,7 +604,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
       youtubePlayerRef.current = null;
       lastLoadedYouTubeVideoIdRef.current = null;
-      setYoutubePlayerReady(false);
     };
   }, [hasRoom]);
 
