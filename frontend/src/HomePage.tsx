@@ -27,9 +27,9 @@ type Session = {
 
 
 
-const socket = io("http://127.0.0.1:3001", {withCredentials: true});
+const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
 
-const BACKEND_URL = "http://127.0.0.1:3001";
+const socket = io(BACKEND_URL, {withCredentials: true});
 
 type Playlist = {
   id: string;

@@ -24,6 +24,7 @@ declare module 'express-session' {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 const frontEndUrl = process.env.FRONTEND_URL;
 if (!frontEndUrl){
   throw new Error('FrontendURL must be set in .env');
@@ -55,8 +56,8 @@ export const sessionSetUp = (session({
   cookie: {
     maxAge: 60 * 60 * 1000, // 1 hr
     httpOnly: true,
-    secure: false, // bc sent over http (our vm link)
-    sameSite: 'lax' // cookie sent when a user clicks a regular link on your site, but blocked if another website tries to use our site secretly
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
   }
 
 }))
@@ -75,7 +76,7 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 
 
-var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
+var redirect_uri = (process.env.BACKEND_URL || 'http://127.0.0.1:3001') + '/auth/spotify/callback';
 
 /**
 * @openapi
@@ -92,7 +93,7 @@ var redirect_uri = 'http://127.0.0.1:3001/auth/spotify/callback';
 app.get('/auth/spotify', function(req, res) {
 
   var state = helpers.generateRandomString(16);
-  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify user-top-read';
+  var scope = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-library-modify user-top-read streaming user-read-playback-state user-modify-playback-state';
 
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
@@ -201,7 +202,7 @@ app.get("/auth/guest", async function(req,res) {
 })
 
 
-var youtube_redirect_uri = 'http://127.0.0.1:3001/auth/youtube/callback';
+var youtube_redirect_uri = (process.env.BACKEND_URL || 'http://127.0.0.1:3001') + '/auth/youtube/callback';
 
 /**
  * @openapi
@@ -532,6 +533,20 @@ app.get('/api/top_tracks', async function(req,res) {
 
 })
 
+app.get('/api/spotify-token', async function(req,res) {
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+
+  const user = await helpers.getUserById(Number(req.session.user.userId));
+
+  if(!user || user.platform !== "spotify" || !user.access_token){
+    return res.status(400).json({error: "No Spotify account connected"});
+  }
+
+  return res.json({accessToken: user.access_token});
+})
+
 /**
  * @openapi
  *  /friends/request:
@@ -750,7 +765,7 @@ app.post('/logout', (req: Request, res: Response) => {
     res.clearCookie('connect.sid', {
       path: '/',
       httpOnly: true,
-      secure: false, 
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax'
     });
     return res.json({ ok: true });

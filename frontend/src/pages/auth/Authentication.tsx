@@ -1,5 +1,7 @@
 import styles from "./Authentication.module.css";
 
+const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
+
 export default function Authentication() {
 
 
@@ -19,7 +21,7 @@ export default function Authentication() {
                         
                             <img src = "https://cdn.creazilla.com/icons/3251108/person-icon-md.png" className={styles.guestImg}/>
                     <p>Jump in without connecting an account</p>
-                    <a href= "http://127.0.0.1:3001/auth/guest">
+                    <a href={`${BACKEND_URL}/auth/guest`}>
                     
                             <button className = {styles.signin}> Continue as a guest </button>
                     </a>
@@ -31,7 +33,7 @@ export default function Authentication() {
                         
                         <img src = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/960px-Spotify_icon.svg.png" className =  {styles.spotifyImg}/>
                         <p>Link your spotify account to get started!</p>
-                        <a href = "http://127.0.0.1:3001/auth/spotify">
+                        <a href={`${BACKEND_URL}/auth/spotify`}>
                             <button className = {styles.spotifyButton}>Connect to Spotify</button>
                         </a>
                     </div>
@@ -39,7 +41,7 @@ export default function Authentication() {
                         <h2>Connect to youtube!</h2>
                         <img src = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1280px-YouTube_full-color_icon_%282017%29.svg.png"/>
                         <p>Link your youtube account to begin!</p>
-                        <a href = "http://127.0.0.1:3001/auth/youtube">
+                        <a href={`${BACKEND_URL}/auth/youtube`}>
                             <button className = {styles.youtubeButton}>Connect to YouTube</button>
                         </a>
                     </div>
