@@ -61,7 +61,7 @@ type Props = {
   shouldCreateRoom: boolean;
 };
 
-const socket: Socket = io("http://127.0.0.1:3001", {withCredentials: true});
+const socket: Socket = io(import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001", {withCredentials: true});
 
 export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [roomError, setRoomError] = useState("");
