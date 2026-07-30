@@ -359,11 +359,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   useEffect(() => {
     async function start() {
       leavingRef.current = false;
-      if (shouldCreateRoom) {
-        socket.emit("room:create", { user });
-      } else {
-        socket.emit("room:join", { roomId, user });
-      }
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -382,6 +377,12 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       } catch (error) {
         console.error("Mic error:", error);
         alert(`Mic failed: ${error instanceof Error ? error.name : "Unknown error"}`);
+      }
+
+      if (shouldCreateRoom) {
+        socket.emit("room:create", { user });
+      } else {
+        socket.emit("room:join", { roomId, user });
       }
     }
 
