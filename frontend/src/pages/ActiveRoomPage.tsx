@@ -4,10 +4,56 @@ import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
 import { QRCodeCanvas } from "qrcode.react";
 import type { RoomState, User, SongResult } from "../types";
 
+type YouTubeVideoRequest = {
+  videoId: string;
+  startSeconds?: number;
+  endSeconds?: number;
+};
+
+type YouTubePlayer = {
+  loadVideoById: (request: YouTubeVideoRequest) => void;
+  cueVideoById: (request: YouTubeVideoRequest) => void;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  stopVideo: () => void;
+  destroy: () => void;
+  getIframe: () => HTMLIFrameElement;
+};
+
+type YouTubePlayerEvent = {
+  target: YouTubePlayer;
+};
+
+type YouTubePlayerErrorEvent = YouTubePlayerEvent & {
+  data: number;
+};
+
+type YouTubePlayerOptions = {
+  width?: number;
+  height?: number;
+  videoId?: string;
+  playerVars?: Record<string, string | number>;
+  events?: {
+    onReady?: (event: YouTubePlayerEvent) => void;
+    onError?: (event: YouTubePlayerErrorEvent) => void;
+    onAutoplayBlocked?: (event: YouTubePlayerEvent) => void;
+  };
+};
+
+type YouTubeNamespace = {
+  Player: new (
+    element: HTMLElement | string,
+    options: YouTubePlayerOptions
+  ) => YouTubePlayer;
+};
+
 declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
+
+    YT?: YouTubeNamespace;
+    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
@@ -42,6 +88,78 @@ type Props = {
 
 const socket: Socket = io("http://127.0.0.1:3001", {withCredentials: true});
 
+let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
+
+function loadYouTubeIframeApi(): Promise<YouTubeNamespace> {
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+
+  if (youtubeApiPromise) {
+    return youtubeApiPromise;
+  }
+
+  youtubeApiPromise = new Promise<YouTubeNamespace>((resolve, reject) => {
+    let completed = false;
+
+    const succeed = () => {
+      if (completed) return;
+
+      if (!window.YT?.Player) {
+        reject(new Error("YouTube IFrame API loaded without YT.Player."));
+        return;
+      }
+
+      completed = true;
+      resolve(window.YT);
+    };
+
+    const fail = () => {
+      if (completed) return;
+
+      completed = true;
+      youtubeApiPromise = null;
+      reject(new Error("Failed to load the YouTube IFrame API."));
+    };
+
+    const previousReadyHandler = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      previousReadyHandler?.();
+      succeed();
+    };
+
+    const existingScript =
+      document.querySelector<HTMLScriptElement>(
+        'script[src="https://www.youtube.com/iframe_api"]'
+      );
+
+    if (!existingScript) {
+      const script = document.createElement("script");
+
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.onerror = fail;
+
+      document.head.appendChild(script);
+    } else {
+      existingScript.addEventListener("error", fail, {
+        once: true
+      });
+    }
+
+    window.setTimeout(() => {
+      if (window.YT?.Player) {
+        succeed();
+      } else {
+        fail();
+      }
+    }, 15000);
+  });
+
+  return youtubeApiPromise;
+}
+
 export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [roomError, setRoomError] = useState("");
   const [currentRoomId, setCurrentRoomId] = useState(roomId);
@@ -52,7 +170,30 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [searchResults, setSearchResults] = useState<SongResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+
+  const [youtubePlayerReady, setYoutubePlayerReady] =
+    useState(false);
+
+  const [youtubePlaybackError, setYoutubePlaybackError] = useState<{
+    videoId: string;
+    message: string;
+  } | null>(null);
+
+  const [
+    youtubeAutoplayBlockedVideoId,
+    setYoutubeAutoplayBlockedVideoId
+  ] = useState<string | null>(null);
+
   const selfMutedRef = useRef(false);
+
+  const youtubePlayerElementRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const youtubePlayerRef =
+    useRef<YouTubePlayer | null>(null);
+
+  const lastLoadedYouTubeVideoIdRef =
+    useRef<string | null>(null);
 
   const currentRoomIdRef = useRef<string | null>(roomId);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -67,6 +208,19 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const hostUser = room?.users.find(
     (u) => u.id === room?.hostId
     );
+
+  const hasRoom = room !== null;
+
+  const youtubeVideoId =
+    room?.music.provider === "youtube"
+      ? room.music.providerTrackId
+      : null;
+
+  const youtubeShouldPlay =
+    room?.music.playing ?? false;
+
+  const youtubeStartTime =
+    room?.music.currentTime ?? 0;
 
   function startMicMeter(stream: MediaStream) {
     const audioContext = new AudioContext();
@@ -339,6 +493,174 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!hasRoom) return;
+
+    const playerElement = youtubePlayerElementRef.current;
+
+    if (!playerElement) return;
+
+    let cancelled = false;
+
+    loadYouTubeIframeApi()
+      .then((youtube) => {
+        if (cancelled) return;
+
+        const currentElement =
+          youtubePlayerElementRef.current;
+
+        if (!currentElement) return;
+
+        const player = new youtube.Player(currentElement, {
+          width: 640,
+          height: 360,
+
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            playsinline: 1,
+            rel: 0,
+            origin: window.location.origin
+          },
+
+          events: {
+            onReady: (event) => {
+              if (cancelled) return;
+
+              const iframe = event.target.getIframe();
+
+              iframe.title = "JamSync YouTube player";
+
+              iframe.setAttribute(
+                "allow",
+                "autoplay; encrypted-media; picture-in-picture"
+              );
+
+              iframe.style.display = "block";
+              iframe.style.width = "100%";
+              iframe.style.height = "auto";
+              iframe.style.aspectRatio = "16 / 9";
+              iframe.style.border = "0";
+
+              setYoutubePlayerReady(true);
+            },
+
+            onError: (event) => {
+              const failedVideoId =
+                lastLoadedYouTubeVideoIdRef.current;
+
+              console.error("YouTube player error:", event.data);
+
+              if (!failedVideoId) return;
+
+              setYoutubePlaybackError({
+                videoId: failedVideoId,
+                message: `YouTube could not play this video. Error code: ${event.data}`
+              });
+            },
+
+            onAutoplayBlocked: () => {
+              const blockedVideoId =
+                lastLoadedYouTubeVideoIdRef.current;
+
+              if (!blockedVideoId) return;
+
+              setYoutubeAutoplayBlockedVideoId(blockedVideoId);
+            }
+          }
+        });
+
+        youtubePlayerRef.current = player;
+      })
+      .catch((error: unknown) => {
+        console.error(
+          "Could not initialize YouTube player:",
+          error
+        );
+
+        setYoutubePlaybackError({
+          videoId:
+            lastLoadedYouTubeVideoIdRef.current ??
+            "youtube-player",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Could not initialize YouTube playback."
+        });
+      });
+
+    return () => {
+      cancelled = true;
+
+      try {
+        youtubePlayerRef.current?.destroy();
+      } catch (error) {
+        console.warn(
+          "Could not destroy YouTube player:",
+          error
+        );
+      }
+
+      youtubePlayerRef.current = null;
+      lastLoadedYouTubeVideoIdRef.current = null;
+      setYoutubePlayerReady(false);
+    };
+  }, [hasRoom]);
+
+  useEffect(() => {
+    const player = youtubePlayerRef.current;
+
+    if (!youtubePlayerReady || !player) {
+      return;
+    }
+
+    if (!youtubeVideoId) {
+      if (lastLoadedYouTubeVideoIdRef.current) {
+        player.stopVideo();
+      }
+
+      lastLoadedYouTubeVideoIdRef.current = null;
+      return;
+    }
+
+    const safeStartTime = Number.isFinite(youtubeStartTime)
+      ? Math.max(0, youtubeStartTime)
+      : 0;
+
+    const videoChanged =
+      lastLoadedYouTubeVideoIdRef.current !== youtubeVideoId;
+
+    if (videoChanged) {
+      lastLoadedYouTubeVideoIdRef.current = youtubeVideoId;
+
+      if (youtubeShouldPlay) {
+        player.loadVideoById({
+          videoId: youtubeVideoId,
+          startSeconds: safeStartTime
+        });
+      } else {
+        player.cueVideoById({
+          videoId: youtubeVideoId,
+          startSeconds: safeStartTime
+        });
+      }
+
+      return;
+    }
+
+    if (youtubeShouldPlay) {
+      player.playVideo();
+    } else {
+      player.pauseVideo();
+    }
+  }, [
+    youtubeVideoId,
+    youtubeShouldPlay,
+    youtubeStartTime,
+    youtubePlayerReady
+  ]);
+
   function toggleSelfMute() {
     const roomId = currentRoomIdRef.current;
     if (!roomId) return;
@@ -567,6 +889,49 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
           <h2>{room.music.title}</h2>
 
           <p>{room.music.artist}</p>
+
+          <div
+            style={{
+              display: youtubeVideoId ? "block" : "none",
+              width: "100%",
+              maxWidth: "720px",
+              margin: "12px auto",
+              overflow: "hidden",
+              borderRadius: "12px",
+              background: "#000"
+            }}
+          >
+            <div ref={youtubePlayerElementRef} />
+          </div>
+
+          {youtubePlaybackError &&
+            (
+              youtubePlaybackError.videoId === youtubeVideoId ||
+              youtubePlaybackError.videoId === "youtube-player"
+            ) && (
+              <p
+                style={{
+                  margin: "8px 0",
+                  color: "#b00020",
+                  fontWeight: 600
+                }}
+              >
+                {youtubePlaybackError.message}
+              </p>
+            )}
+
+          {youtubeVideoId &&
+            youtubeAutoplayBlockedVideoId === youtubeVideoId && (
+              <button
+                type="button"
+                onClick={() => {
+                  youtubePlayerRef.current?.playVideo();
+                  setYoutubeAutoplayBlockedVideoId(null);
+                }}
+              >
+                Start YouTube Playback
+              </button>
+            )}
 
           {room.music.crossPlatformStatus === "unmatched" && (
             <p
