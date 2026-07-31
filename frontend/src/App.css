@@ -62,7 +62,7 @@ button:disabled {
   padding-right: 1.8rem;
   border-radius: 38px;
   justify-content: flex-end;
-  width: 85%;
+  width: auto;
   height: 65%;
   margin-left: auto;
   
