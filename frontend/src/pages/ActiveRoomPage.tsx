@@ -976,9 +976,16 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
           return (
             <div
               key={roomUser.id}
-              className="user-card"
-              style={{ backgroundColor: roomUser.color }}
+              className={
+                roomUser.speaking && !cannotHearUser
+                  ? "user-card speaking"
+                  : "user-card"
+              }
             >
+              <div className="avatar" style={{ backgroundColor: roomUser.color }}>
+                {roomUser.name.charAt(0)}
+              </div>
+
               <h2>{roomUser.name}</h2>
             
               <div className="mic-container">
