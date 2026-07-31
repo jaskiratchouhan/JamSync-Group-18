@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
+import { BsFillMicFill, BsFillMicMuteFill, BsFillSkipEndFill, BsPlayFill, BsPauseFill } from "react-icons/bs";
 import { QRCodeCanvas } from "qrcode.react";
 import type { RoomState, User, SongResult } from "../types";
 
@@ -203,7 +203,6 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [spotifyReady, setSpotifyReady] = useState(false);
-  const [playbackEnabled, setPlaybackEnabled] = useState(false);
   const [spotifyError, setSpotifyError] = useState("");
   const [micError, setMicError] = useState(false);
 
@@ -240,10 +239,6 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
   const leavingRef = useRef(false);
 
   const isHost = room?.hostId === user.id;
-  const hostUser = room?.users.find(
-    (u) => u.id === room?.hostId
-    );
-
   const musicPlaying = room?.music.playing ?? false;
   const musicPosition = room?.music.currentTime ?? 0;
   const spotifyTrackId =
@@ -323,7 +318,7 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
   useEffect(() => {
     const player = spotifyPlayerRef.current;
     const deviceId = spotifyDeviceRef.current;
-    if (!player || !spotifyReady || !playbackEnabled || !deviceId) return;
+    if (!player || !spotifyReady || !deviceId) return;
 
     if (!spotifyTrackId) {
       player.pause?.();
@@ -356,7 +351,7 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
 
     if (musicPlaying) player.resume?.();
     else player.pause?.();
-  }, [spotifyTrackId, musicStartedAt, musicPlaying, spotifyReady, playbackEnabled]);
+  }, [spotifyTrackId, musicStartedAt, musicPlaying, spotifyReady]);
 
   const hasRoom = room !== null;
 
@@ -861,7 +856,7 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
     });
   }
 
-  function musicAction(action: "play" | "pause" | "skip" | "back") {
+  function musicAction(action: "play" | "pause" | "skip") {
     if (!currentRoomId) return;
 
     socket.emit("music:action", {
@@ -1108,27 +1103,8 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
             </p>
           )}
 
-          {spotifyTrackId && !playbackEnabled && (
-            <button
-              onClick={() => {
-                setPlaybackEnabled(true);
-                spotifyPlayerRef.current?.activateElement?.();
-              }}
-            >
-              Enable Spotify playback
-            </button>
-          )}
-
-          {spotifyTrackId && playbackEnabled && !spotifyReady && !spotifyError && (
-            <p style={{ fontSize: "13px", color: "#555" }}>
-              Connecting to Spotify…
-            </p>
-          )}
-
-          {spotifyTrackId && playbackEnabled && spotifyReady && !spotifyError && (
-            <p style={{ fontSize: "13px", color: "#1db954" }}>
-              {musicPlaying ? "Now listening" : "Paused"}
-            </p>
+          {spotifyTrackId && !spotifyReady && !spotifyError && (
+            <p className="meta">Connecting to Spotify…</p>
           )}
 
           {spotifyTrackId && spotifyError && (
@@ -1178,43 +1154,24 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
             </div>
           )}
 
-          <div
-            style={{
-              margin: "12px 0",
-              padding: "10px",
-              border: "1px solid #bbb",
-              borderRadius: "10px",
-              background: "#f3f3f3"
-            }}
-          >
-            <div style={{ fontWeight: "bold", fontSize: "16px" }}>
-              Music Controller
-            </div>
-
-            <div>{hostUser?.name}</div>
-          </div>
-
           <p>
             <strong>Status:</strong>{" "}
             {room.music.playing ? "Playing" : "Paused"}
           </p>
 
           <div className="music-controls">
-            <button disabled={!isHost} onClick={() => musicAction("back")}>
-              Back
-            </button>
-
             <button
+              className="play-button"
               disabled={!isHost}
               onClick={() =>
                 musicAction(room.music.playing ? "pause" : "play")
               }
             >
-              {room.music.playing ? "Pause" : "Play"}
+              {room.music.playing ? <BsPauseFill size={24} /> : <BsPlayFill size={24} />}
             </button>
 
             <button disabled={!isHost} onClick={() => musicAction("skip")}>
-              Skip
+              <BsFillSkipEndFill size={20} />
             </button>
           </div>
 
