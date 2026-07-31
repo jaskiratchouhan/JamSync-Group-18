@@ -76,6 +76,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [spotifyReady, setSpotifyReady] = useState(false);
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
   const [spotifyError, setSpotifyError] = useState("");
+  const [micError, setMicError] = useState(false);
   const selfMutedRef = useRef(false);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
   const spotifyDeviceRef = useRef<string | null>(null);
@@ -366,11 +367,19 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     async function start() {
       leavingRef.current = false;
 
+      const micRequest = navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false
+      });
+
+      if (shouldCreateRoom) {
+        socket.emit("room:create", { user });
+      } else {
+        socket.emit("room:join", { roomId, user });
+      }
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false
-        });
+        const stream = await micRequest;
 
         localStreamRef.current = stream;
         stream.getAudioTracks().forEach((track) => {
@@ -382,13 +391,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
         startSpeechToText();
       } catch (error) {
         console.error("Mic error:", error);
-        alert(`Mic failed: ${error instanceof Error ? error.name : "Unknown error"}`);
-      }
-
-      if (shouldCreateRoom) {
-        socket.emit("room:create", { user });
-      } else {
-        socket.emit("room:join", { roomId, user });
+        setMicError(true);
       }
     }
 
@@ -592,6 +595,8 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
           <h1>JamSync Room</h1>
 
           <p>{room.users.length} Users Connected</p>
+
+          {micError && <p>Microphone is off, so nobody can hear you.</p>}
 
           <div
             style={{
