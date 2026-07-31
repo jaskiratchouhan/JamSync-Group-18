@@ -4,57 +4,12 @@ import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
 import { QRCodeCanvas } from "qrcode.react";
 import type { RoomState, User, SongResult } from "../types";
 
-type YouTubeVideoRequest = {
-  videoId: string;
-  startSeconds?: number;
-  endSeconds?: number;
-};
-
-type YouTubePlayer = {
-  loadVideoById: (request: YouTubeVideoRequest) => void;
-  cueVideoById: (request: YouTubeVideoRequest) => void;
-  playVideo: () => void;
-  pauseVideo: () => void;
-  stopVideo: () => void;
-  destroy: () => void;
-  getIframe: () => HTMLIFrameElement;
-};
-
-type YouTubePlayerEvent = {
-  target: YouTubePlayer;
-};
-
-type YouTubePlayerErrorEvent = YouTubePlayerEvent & {
-  data: number;
-};
-
-type YouTubePlayerOptions = {
-  width?: number;
-  height?: number;
-  videoId?: string;
-  playerVars?: Record<string, string | number>;
-  events?: {
-    onReady?: (event: YouTubePlayerEvent) => void;
-    onError?: (event: YouTubePlayerErrorEvent) => void;
-    onAutoplayBlocked?: (event: YouTubePlayerEvent) => void;
-  };
-};
-
-type YouTubeNamespace = {
-  Player: new (
-    element: HTMLElement | string,
-    options: YouTubePlayerOptions
-  ) => YouTubePlayer;
-};
-
 declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
     Spotify?: SpotifyNamespace;
     onSpotifyWebPlaybackSDKReady?: () => void;
-    YT?: YouTubeNamespace;
-    onYouTubeIframeAPIReady?: () => void;
   }
 }
 
@@ -108,89 +63,6 @@ type Props = {
 
 const socket: Socket = io(import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001", {withCredentials: true});
 
-let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
-
-function loadYouTubeIframeApi(): Promise<YouTubeNamespace> {
-  if (window.YT?.Player) {
-    return Promise.resolve(window.YT);
-  }
-
-  if (youtubeApiPromise) {
-    return youtubeApiPromise;
-  }
-
-  youtubeApiPromise = new Promise<YouTubeNamespace>(
-    (resolve, reject) => {
-      let finished = false;
-
-      const checkReady = () => {
-        if (finished || !window.YT?.Player) return;
-
-        finished = true;
-        window.clearInterval(checkInterval);
-        window.clearTimeout(timeout);
-
-        resolve(window.YT);
-      };
-
-      const fail = () => {
-        if (finished) return;
-
-        finished = true;
-        window.clearInterval(checkInterval);
-        window.clearTimeout(timeout);
-
-        youtubeApiPromise = null;
-
-        reject(
-          new Error("Failed to load the YouTube IFrame API.")
-        );
-      };
-
-      const existingScript =
-        document.querySelector<HTMLScriptElement>(
-          'script[src="https://www.youtube.com/iframe_api"]'
-        );
-
-      if (!existingScript) {
-        const script = document.createElement("script");
-
-        script.src = "https://www.youtube.com/iframe_api";
-        script.async = true;
-        script.onerror = fail;
-
-        document.head.appendChild(script);
-      } else {
-        existingScript.addEventListener("error", fail, {
-          once: true
-        });
-      }
-
-      const previousReadyHandler =
-        window.onYouTubeIframeAPIReady;
-
-      window.onYouTubeIframeAPIReady = () => {
-        previousReadyHandler?.();
-        checkReady();
-      };
-
-      const checkInterval = window.setInterval(
-        checkReady,
-        250
-      );
-
-      const timeout = window.setTimeout(
-        fail,
-        30000
-      );
-
-      checkReady();
-    }
-  );
-
-  return youtubeApiPromise;
-}
-
 export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [roomError, setRoomError] = useState("");
   const [currentRoomId, setCurrentRoomId] = useState(roomId);
@@ -205,34 +77,11 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
   const [spotifyError, setSpotifyError] = useState("");
   const [micError, setMicError] = useState(false);
-
-  const [youtubePlayerReady, setYoutubePlayerReady] =
-    useState(false);
-
-  const [youtubePlaybackError, setYoutubePlaybackError] = useState<{
-    videoId: string;
-    message: string;
-  } | null>(null);
-
-  const [
-    youtubeAutoplayBlockedVideoId,
-    setYoutubeAutoplayBlockedVideoId
-  ] = useState<string | null>(null);
-
   const selfMutedRef = useRef(false);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
   const spotifyDeviceRef = useRef<string | null>(null);
   const spotifyTokenRef = useRef<string | null>(null);
   const loadedTrackRef = useRef<string | null>(null);
-
-  const youtubePlayerElementRef =
-    useRef<HTMLDivElement | null>(null);
-
-  const youtubePlayerRef =
-    useRef<YouTubePlayer | null>(null);
-
-  const lastLoadedYouTubeVideoIdRef =
-    useRef<string | null>(null);
 
   const currentRoomIdRef = useRef<string | null>(roomId);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -358,19 +207,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     else player.pause?.();
   }, [spotifyTrackId, musicStartedAt, musicPlaying, spotifyReady, playbackEnabled]);
 
-  const hasRoom = room !== null;
-
-  const youtubeVideoId =
-    room?.music.provider === "youtube"
-      ? room.music.providerTrackId
-      : null;
-
-  const youtubeShouldPlay =
-    room?.music.playing ?? false;
-
-  const youtubeStartTime =
-    room?.music.currentTime ?? 0;
-
   function startMicMeter(stream: MediaStream) {
     const audioContext = new AudioContext();
     const source = audioContext.createMediaStreamSource(stream);
@@ -397,6 +233,8 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
       const volume = Math.sqrt(sum / data.length);
       const isSpeaking = volume > 5;
+
+      console.log("mic volume:", volume);
 
       socket.emit("voice:speaking", {
         roomId: currentRoomIdRef.current,
@@ -644,190 +482,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!hasRoom) return;
-
-    const playerElement = youtubePlayerElementRef.current;
-
-    if (!playerElement) return;
-
-    let cancelled = false;
-
-    loadYouTubeIframeApi()
-      .then((youtube) => {
-        if (cancelled) return;
-
-        const currentElement =
-          youtubePlayerElementRef.current;
-
-        if (!currentElement) return;
-
-        const player = new youtube.Player(currentElement, {
-          width: 640,
-          height: 360,
-
-          playerVars: {
-            autoplay: 0,
-            controls: 0,
-            disablekb: 1,
-            playsinline: 1,
-            rel: 0,
-            origin: window.location.origin
-          },
-
-          events: {
-            onReady: (event) => {
-              if (cancelled) return;
-
-              const iframe = event.target.getIframe();
-
-              iframe.title = "JamSync YouTube audio player";
-
-              iframe.setAttribute(
-                "allow",
-                "autoplay; encrypted-media"
-              );
-
-              iframe.style.width = "1px";
-              iframe.style.height = "1px";
-              iframe.style.border = "0";
-              iframe.style.pointerEvents = "none";
-
-              setYoutubePlayerReady(true);
-            },
-
-            onError: (event) => {
-              const failedVideoId =
-                lastLoadedYouTubeVideoIdRef.current;
-
-              console.error("YouTube player error:", event.data);
-
-              if (!failedVideoId) return;
-
-              const blockedOutsideYouTube =
-                event.data === 150 || event.data === 101;
-
-              setYoutubePlaybackError({
-                videoId: failedVideoId,
-                message: blockedOutsideYouTube
-                  ? "This video cannot be played outside of YouTube. Pick a different one."
-                  : `YouTube could not play this video. Error code: ${event.data}`
-              });
-
-              if (blockedOutsideYouTube) {
-                socket.emit("music:action", {
-                  roomId: currentRoomIdRef.current,
-                  requesterId: user.id,
-                  action: "skip"
-                });
-              }
-            },
-
-            onAutoplayBlocked: () => {
-              const blockedVideoId =
-                lastLoadedYouTubeVideoIdRef.current;
-
-              if (!blockedVideoId) return;
-
-              setYoutubeAutoplayBlockedVideoId(blockedVideoId);
-            }
-          }
-        });
-
-        youtubePlayerRef.current = player;
-      })
-      .catch((error: unknown) => {
-        console.error(
-          "Could not initialize YouTube player:",
-          error
-        );
-
-        setYoutubePlaybackError({
-          videoId:
-            lastLoadedYouTubeVideoIdRef.current ??
-            "youtube-player",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Could not initialize YouTube playback."
-        });
-      });
-
-    return () => {
-      cancelled = true;
-
-      try {
-        youtubePlayerRef.current?.destroy();
-      } catch (error) {
-        console.warn(
-          "Could not destroy YouTube player:",
-          error
-        );
-      }
-
-      youtubePlayerRef.current = null;
-      lastLoadedYouTubeVideoIdRef.current = null;
-    };
-  }, [hasRoom, user.id]);
-
-  useEffect(() => {
-    const player = youtubePlayerRef.current;
-
-    if (!youtubePlayerReady || !player) {
-      return;
-    }
-
-    if (!youtubeVideoId) {
-      if (lastLoadedYouTubeVideoIdRef.current) {
-        player.stopVideo();
-      }
-
-      lastLoadedYouTubeVideoIdRef.current = null;
-      return;
-    }
-
-    const safeStartTime = Number.isFinite(youtubeStartTime)
-      ? Math.max(0, youtubeStartTime)
-      : 0;
-
-    const loadKey = `${youtubeVideoId}:${musicStartedAt}`;
-
-    const videoChanged =
-      lastLoadedYouTubeVideoIdRef.current !== loadKey;
-
-    if (videoChanged) {
-      lastLoadedYouTubeVideoIdRef.current = loadKey;
-      setYoutubePlaybackError(null);
-
-      if (youtubeShouldPlay) {
-        console.log("Loading video:", youtubeVideoId);
-        player.loadVideoById({
-          videoId: youtubeVideoId,
-          startSeconds: safeStartTime
-        });
-      } else {
-        player.cueVideoById({
-          videoId: youtubeVideoId,
-          startSeconds: safeStartTime
-        });
-      }
-
-      return;
-    }
-
-    if (youtubeShouldPlay) {
-      player.playVideo();
-    } else {
-      player.pauseVideo();
-    }
-  }, [
-    youtubeVideoId,
-    musicStartedAt,
-    youtubeShouldPlay,
-    youtubeStartTime,
-    youtubePlayerReady
-  ]);
-
   function toggleSelfMute() {
     const roomId = currentRoomIdRef.current;
     if (!roomId) return;
@@ -1058,47 +712,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
           <h2>{room.music.title}</h2>
 
           <p>{room.music.artist}</p>
-
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              width: "1px",
-              height: "1px",
-              overflow: "hidden",
-              opacity: 0,
-              pointerEvents: "none",
-              left: "-9999px",
-              top: "-9999px"
-            }}
-          >
-            <div ref={youtubePlayerElementRef} />
-          </div>
-
-          {youtubePlaybackError && (
-              <p
-                style={{
-                  margin: "8px 0",
-                  color: "#b00020",
-                  fontWeight: 600
-                }}
-              >
-                {youtubePlaybackError.message}
-              </p>
-            )}
-
-          {youtubeVideoId &&
-            youtubeAutoplayBlockedVideoId === youtubeVideoId && (
-              <button
-                type="button"
-                onClick={() => {
-                  youtubePlayerRef.current?.playVideo();
-                  setYoutubeAutoplayBlockedVideoId(null);
-                }}
-              >
-                Start YouTube Playback
-              </button>
-            )}
 
           {room.music.crossPlatformStatus === "unmatched" && (
             <p
