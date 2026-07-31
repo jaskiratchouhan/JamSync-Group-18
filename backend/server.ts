@@ -11,6 +11,7 @@ import app, {sessionSetUp} from "./app.ts";
 import {io, onlineUsers} from "./socket.ts";
 import {searchProvider} from "./music/providers.ts";
 import {looksLikeMatch} from "./music/normalize.ts";
+import {getFreshAccessToken} from "./music/spotifyAuth.ts";
 
 const server = http.createServer(app);
 io.attach(server);
@@ -113,7 +114,10 @@ async function mapCrossPlatform(m: Room["music"]) {
       const tokenUser = await helpers.getUserTokenByPlatform(platform);
       if (!tokenUser?.access_token) continue;
 
-      const hits = await searchProvider(platform, `${m.title} ${m.artist}`, tokenUser.access_token);
+      const accessToken = await getFreshAccessToken(tokenUser);
+      if (!accessToken) continue;
+
+      const hits = await searchProvider(platform, `${m.title} ${m.artist}`, accessToken);
       const hit = hits.find((h) => looksLikeMatch(h.title, m.title)) ?? hits[0];
       if (hit) await helpers.upsertSongProvider(m.songId, platform, hit.providerTrackId);
     } catch (err) {
@@ -432,7 +436,13 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const results = await searchProvider(user.platform, query, user.access_token);
+      const accessToken = await getFreshAccessToken(user);
+      if (!accessToken) {
+        callback?.({ results: [], error: "Music account session expired" });
+        return;
+      }
+
+      const results = await searchProvider(user.platform, query, accessToken);
       callback?.({ results, platform: user.platform });
     } catch (err) {
       console.error("music:search failed", err);

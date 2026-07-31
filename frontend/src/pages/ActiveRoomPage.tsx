@@ -170,7 +170,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   useEffect(() => {
     const player = spotifyPlayerRef.current;
     const deviceId = spotifyDeviceRef.current;
-    const token = spotifyTokenRef.current;
     if (!player || !spotifyReady || !playbackEnabled || !deviceId) return;
 
     if (!spotifyTrackId) {
@@ -180,18 +179,22 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
     if (loadedTrackRef.current !== spotifyTrackId) {
       loadedTrackRef.current = spotifyTrackId;
-      if (musicPlaying && token) {
-        fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            uris: [`spotify:track:${spotifyTrackId}`],
-            position_ms: Math.floor(musicPosition * 1000)
-          })
-        }).catch(() => {});
+      if (musicPlaying) {
+        fetchSpotifyToken().then((token) => {
+          if (!token) return;
+
+          fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              uris: [`spotify:track:${spotifyTrackId}`],
+              position_ms: Math.floor(musicPosition * 1000)
+            })
+          }).catch(() => {});
+        });
       }
       return;
     }
