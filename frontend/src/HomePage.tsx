@@ -106,15 +106,9 @@ export default function HomePage() {
   //const [user] = useState(makeRandomUser);
   const params = new URLSearchParams(window.location.search);
   const roomFromUrl = params.get("room");
-  const userId = params.get("userId");
-  const guestId = params.get("guest_id");
-  const dbUserId = Number(userId ?? guestId);
   const navigate = useNavigate();
 
-  const [user] = useState(() => ({
-    ...makeRandomUser(),
-    dbUserId
-  }));
+  const [user] = useState(makeRandomUser);
 
   const [roomInput, setRoomInput] = useState(roomFromUrl ?? "");
   const [currentActiveRoomID, setCurrentActiveRoomID] = useState<string | null>(roomFromUrl);
@@ -150,10 +144,8 @@ export default function HomePage() {
   const [allFriends, setAllFriends] = useState<friends[]>([]);
 
   useEffect (() => {
-    // if (!userId) return;
-
     (async () => {
-    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`, {credentials: 'include'})
+    const res = await fetch(`${BACKEND_URL}/api/profile`, {credentials: 'include'})
       if (!res.ok) {
         throw new Error("Something went wrong. Could not load the user profile.");
       }
@@ -161,8 +153,9 @@ export default function HomePage() {
         setProfile(profileInfo)
       })().catch((error) => {
         console.error(error)
+        navigate('/');
 
-      
+
     });
 }, []);
   useEffect(() => {
@@ -209,7 +202,7 @@ export default function HomePage() {
   useEffect(() => {
     
 
-    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`, {credentials: 'include'})
+    fetch(`${BACKEND_URL}/api/playlists`, {credentials: 'include'})
       .then((res) => {
         if (!res.ok) throw new Error("Could not load playlists");
         return res.json();
@@ -238,9 +231,10 @@ export default function HomePage() {
 
 
   useEffect(() => {
+    if (!profile) return;
 
     socket.emit("user:sessions:get", {
-      userId: dbUserId
+      userId: profile.id
     });
 
     socket.on("user:sessions", (sessions) => {
@@ -250,7 +244,7 @@ export default function HomePage() {
       socket.off("user:sessions");
     };
 
-  },[])
+  },[profile])
 
  
 
@@ -306,6 +300,9 @@ export default function HomePage() {
 
   const roomInfo = currentActiveRoomID || makingRoom;
 
+  if (!profile) {
+    return <p className="loading">Loading...</p>;
+  }
 
   if (roomInfo) {
 
@@ -316,7 +313,7 @@ export default function HomePage() {
 
     return (
         <ActiveRoomPage
-            user={user}
+            user={{...user, dbUserId: profile.id}}
             roomId={currentActiveRoomID}
             shouldCreateRoom={makingRoom}
             />
