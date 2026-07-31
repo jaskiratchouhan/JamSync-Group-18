@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 
 import { io} from "socket.io-client";
 import { useNavigate } from "react-router-dom";
-import { makeRandomUser } from "./user";
 import "./App.css";
 
 type Profile = {
@@ -51,7 +50,6 @@ type UserTopTrack = {
 export default function HomePage() {
   const navigate = useNavigate();
 
-  const [user] = useState(makeRandomUser);
 
   const [roomInput, setRoomInput] = useState("");
 
@@ -418,7 +416,7 @@ export default function HomePage() {
       <div className="top-portion">
       <header className="title-portion">
         <h1>JamSync Live Prototype</h1>
-        <p>You are {user.name}</p>
+        <p>You are {profile.display_name}</p>
       </header>
 
 

@@ -8,7 +8,7 @@ const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
 export default function SessionPage() {
   const { roomCode } = useParams();
   const navigate = useNavigate();
-  const [dbUserId, setDbUserId] = useState<number | null>(null);
+  const [profile, setProfile] = useState<{id: number; display_name: string} | null>(null);
   const [user] = useState(makeRandomUser);
   const [shouldCreateRoom] = useState(roomCode === "new");
 
@@ -18,7 +18,7 @@ export default function SessionPage() {
         if (!res.ok) throw new Error("Not signed in");
         return res.json();
       })
-      .then((profile) => setDbUserId(profile.id))
+      .then((profile) => setProfile(profile))
       .catch(() => {
         if (roomCode && roomCode !== "new") {
           sessionStorage.setItem("pendingRoom", roomCode);
@@ -27,13 +27,13 @@ export default function SessionPage() {
       });
   }, [navigate, roomCode]);
 
-  if (!dbUserId) {
+  if (!profile) {
     return <p className="loading">Loading...</p>;
   }
 
   return (
     <ActiveRoomPage
-      user={{ ...user, dbUserId }}
+      user={{ ...user, dbUserId: profile.id, name: profile.display_name }}
       roomId={shouldCreateRoom ? null : roomCode ?? null}
       shouldCreateRoom={shouldCreateRoom}
     />
