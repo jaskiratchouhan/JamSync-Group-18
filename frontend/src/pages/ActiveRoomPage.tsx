@@ -704,10 +704,23 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
               if (!failedVideoId) return;
 
+              const blockedOutsideYouTube =
+                event.data === 150 || event.data === 101;
+
               setYoutubePlaybackError({
                 videoId: failedVideoId,
-                message: `YouTube could not play this video. Error code: ${event.data}`
+                message: blockedOutsideYouTube
+                  ? "This video cannot be played outside of YouTube. Pick a different one."
+                  : `YouTube could not play this video. Error code: ${event.data}`
               });
+
+              if (blockedOutsideYouTube) {
+                socket.emit("music:action", {
+                  roomId: currentRoomIdRef.current,
+                  requesterId: user.id,
+                  action: "skip"
+                });
+              }
             },
 
             onAutoplayBlocked: () => {
@@ -755,7 +768,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       youtubePlayerRef.current = null;
       lastLoadedYouTubeVideoIdRef.current = null;
     };
-  }, [hasRoom]);
+  }, [hasRoom, user.id]);
 
   useEffect(() => {
     const player = youtubePlayerRef.current;
@@ -784,6 +797,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
     if (videoChanged) {
       lastLoadedYouTubeVideoIdRef.current = loadKey;
+      setYoutubePlaybackError(null);
 
       if (youtubeShouldPlay) {
         console.log("Loading video:", youtubeVideoId);
@@ -1061,11 +1075,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             <div ref={youtubePlayerElementRef} />
           </div>
 
-          {youtubePlaybackError &&
-            (
-              youtubePlaybackError.videoId === youtubeVideoId ||
-              youtubePlaybackError.videoId === "youtube-player"
-            ) && (
+          {youtubePlaybackError && (
               <p
                 style={{
                   margin: "8px 0",
