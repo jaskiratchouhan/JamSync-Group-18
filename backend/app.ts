@@ -407,7 +407,7 @@ app.get('/api/playlists', async function(req, res) {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
 
-      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name, count: item.tracks?.total ?? 0 }));
       return res.json({ platform: 'spotify', playlists });
     }
 
@@ -419,11 +419,11 @@ app.get('/api/playlists', async function(req, res) {
       }
 
       const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
-        params: { part: 'snippet', mine: true, maxResults: 50 },
+        params: { part: 'snippet,contentDetails', mine: true, maxResults: 50 },
         headers: { Authorization: `Bearer ${accessToken}` }
       });
 
-      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.snippet.title }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.snippet.title, count: item.contentDetails?.itemCount ?? 0 }));
       return res.json({ platform: 'youtube', playlists });
     }
 
@@ -439,6 +439,84 @@ app.get('/api/playlists', async function(req, res) {
     }
     
     res.status(500).json({ error: 'Could not fetch playlists' });
+  }
+});
+
+/**
+ * @openapi
+ *  /api/playlists/{playlistId}/tracks:
+ *    get:
+ *      summary: Get the songs inside one of the logged in user's playlists.
+ *      tags: [Music]
+ *      parameters:
+ *        - in: path
+ *          name: playlistId
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        200:
+ *          description: Songs retrieved
+ *        401:
+ *          description: The user isn't authenticated
+ *        404:
+ *          description: Couldn't find the user
+ *        500:
+ *          description: Could not get the songs.
+ */
+app.get('/api/playlists/:playlistId/tracks', async function(req, res) {
+  if (!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+
+  try {
+    const user = await helpers.getUserById(Number(req.session.user.userId));
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const accessToken = await getFreshAccessToken(user);
+
+    if (!accessToken) {
+      return res.status(401).json({ error: 'Session expired, log in again' });
+    }
+
+    if (user.platform === 'youtube') {
+      const tracks = [];
+      let pageToken = undefined;
+
+      do {
+        const response: any = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+          params: { part: 'snippet', playlistId: req.params.playlistId, maxResults: 50, pageToken },
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        for (const item of response.data.items ?? []) {
+          tracks.push({
+            provider: 'youtube',
+            providerTrackId: item.snippet.resourceId?.videoId,
+            title: item.snippet.title,
+            artist: item.snippet.videoOwnerChannelTitle ?? ''
+          });
+        }
+
+        pageToken = response.data.nextPageToken;
+      } while (pageToken);
+
+      return res.json(tracks);
+    }
+
+    return res.status(400).json({ error: 'Unsupported platform' });
+  } catch (err) {
+    if (axios.isAxiosError(err)){
+      console.error('Playlist tracks error:', err.response?.data || err.message);
+    }
+    else {
+      console.error('Playlist tracks error:', err);
+    }
+
+    res.status(500).json({ error: 'Could not fetch playlist songs' });
   }
 });
 

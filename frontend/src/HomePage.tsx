@@ -33,6 +33,7 @@ const socket = io(BACKEND_URL, {withCredentials: true});
 type Playlist = {
   id: string;
   name: string;
+  count: number;
 };
 
 type UserTopTrack = {
@@ -557,7 +558,10 @@ export default function HomePage() {
               ) : (
                 <ul className="playlist-list">
                   {playlists.map((playlist) => (
-                    <li key={playlist.id}>{playlist.name}</li>
+                    <li key={playlist.id}>
+                      {playlist.name}
+                      <span className="meta"> {playlist.count} songs</span>
+                    </li>
                   ))}
                 </ul>
               )}
