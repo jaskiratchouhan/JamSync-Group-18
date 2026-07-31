@@ -102,6 +102,7 @@ type SpeechRecognitionEvent = {
 
 type Props = {
   user: User;
+  platform: string | null;
   roomId: string | null;
   shouldCreateRoom: boolean;
 };
@@ -191,7 +192,7 @@ function loadYouTubeIframeApi(): Promise<YouTubeNamespace> {
   return youtubeApiPromise;
 }
 
-export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
+export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Props) {
   const [roomError, setRoomError] = useState("");
   const [currentRoomId, setCurrentRoomId] = useState(roomId);
   const [room, setRoom] = useState<RoomState | null>(null);
@@ -213,11 +214,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     videoId: string;
     message: string;
   } | null>(null);
-
-  const [
-    youtubeAutoplayBlockedVideoId,
-    setYoutubeAutoplayBlockedVideoId
-  ] = useState<string | null>(null);
 
   const selfMutedRef = useRef(false);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
@@ -253,6 +249,8 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const spotifyTrackId =
     room?.music.provider === "spotify" ? room?.music.providerTrackId ?? null : null;
   const musicStartedAt = room?.music.startedAt ?? 0;
+  const musicProvider = room?.music.provider ?? null;
+  const canHearSong = musicProvider !== null && musicProvider === platform;
 
   async function fetchSpotifyToken(): Promise<string | null> {
     try {
@@ -270,6 +268,8 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   }
 
   useEffect(() => {
+    if (platform !== "spotify") return;
+
     function initPlayer() {
       const spotify = window.Spotify;
       if (!spotify || spotifyPlayerRef.current) return;
@@ -318,7 +318,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       spotifyPlayerRef.current?.disconnect?.();
       spotifyPlayerRef.current = null;
     };
-  }, []);
+  }, [platform]);
 
   useEffect(() => {
     const player = spotifyPlayerRef.current;
@@ -645,7 +645,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!hasRoom) return;
+    if (!hasRoom || platform !== "youtube") return;
 
     const playerElement = youtubePlayerElementRef.current;
 
@@ -709,9 +709,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
               setYoutubePlaybackError({
                 videoId: failedVideoId,
-                message: blockedOutsideYouTube
-                  ? "This video cannot be played outside of YouTube. Pick a different one."
-                  : `YouTube could not play this video. Error code: ${event.data}`
+                message: "This song could not be played."
               });
 
               if (blockedOutsideYouTube) {
@@ -721,15 +719,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
                   action: "skip"
                 });
               }
-            },
-
-            onAutoplayBlocked: () => {
-              const blockedVideoId =
-                lastLoadedYouTubeVideoIdRef.current;
-
-              if (!blockedVideoId) return;
-
-              setYoutubeAutoplayBlockedVideoId(blockedVideoId);
             }
           }
         });
@@ -746,10 +735,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
           videoId:
             lastLoadedYouTubeVideoIdRef.current ??
             "youtube-player",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Could not initialize YouTube playback."
+          message: "This song could not be played."
         });
       });
 
@@ -768,7 +754,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       youtubePlayerRef.current = null;
       lastLoadedYouTubeVideoIdRef.current = null;
     };
-  }, [hasRoom, user.id]);
+  }, [hasRoom, platform, user.id]);
 
   useEffect(() => {
     const player = youtubePlayerRef.current;
@@ -1075,6 +1061,12 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             <div ref={youtubePlayerElementRef} />
           </div>
 
+          {musicProvider && !canHearSong && (
+            <p style={{ margin: "8px 0", fontWeight: 600 }}>
+              We cannot play this song for you. Sign in with {musicProvider} to listen.
+            </p>
+          )}
+
           {youtubePlaybackError && (
               <p
                 style={{
@@ -1085,19 +1077,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
               >
                 {youtubePlaybackError.message}
               </p>
-            )}
-
-          {youtubeVideoId &&
-            youtubeAutoplayBlockedVideoId === youtubeVideoId && (
-              <button
-                type="button"
-                onClick={() => {
-                  youtubePlayerRef.current?.playVideo();
-                  setYoutubeAutoplayBlockedVideoId(null);
-                }}
-              >
-                Start YouTube Playback
-              </button>
             )}
 
           {room.music.crossPlatformStatus === "unmatched" && (
