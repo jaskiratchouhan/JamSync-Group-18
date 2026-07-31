@@ -51,9 +51,48 @@ export async function refreshSpotifyToken(user: User): Promise<string | null> {
   }
 }
 
+export async function refreshYoutubeToken(user: User): Promise<string | null> {
+  if (!user.refresh_token) return null;
+
+  try {
+    const response = await axios.post(
+      'https://oauth2.googleapis.com/token',
+      querystring.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: user.refresh_token,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET
+      }),
+      {
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    const {access_token, expires_in} = response.data;
+    const token_expires_at = new Date(Date.now() + expires_in * 1000);
+
+    await helpers.updateUserTokens(user.id, access_token, user.refresh_token, token_expires_at);
+
+    return access_token;
+  }
+  catch(err) {
+    if (axios.isAxiosError(err)) {
+      console.error('YouTube token refresh failed:', err.response?.data || err.message);
+    }
+    else {
+      console.error('YouTube token refresh failed:', err);
+    }
+    return null;
+  }
+}
+
 export async function getFreshAccessToken(user: User): Promise<string | null> {
-  if (user.platform !== 'spotify') return user.access_token;
   if (isStillValid(user)) return user.access_token;
 
-  return await refreshSpotifyToken(user);
+  if (user.platform === 'spotify') return await refreshSpotifyToken(user);
+  if (user.platform === 'youtube') return await refreshYoutubeToken(user);
+
+  return user.access_token;
 }
