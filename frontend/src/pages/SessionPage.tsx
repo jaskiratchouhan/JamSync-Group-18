@@ -19,8 +19,13 @@ export default function SessionPage() {
         return res.json();
       })
       .then((profile) => setDbUserId(profile.id))
-      .catch(() => navigate("/"));
-  }, [navigate]);
+      .catch(() => {
+        if (roomCode && roomCode !== "new") {
+          sessionStorage.setItem("pendingRoom", roomCode);
+        }
+        navigate("/");
+      });
+  }, [navigate, roomCode]);
 
   if (!dbUserId) {
     return <p className="loading">Loading...</p>;

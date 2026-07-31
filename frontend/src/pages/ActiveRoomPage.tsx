@@ -611,7 +611,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `${window.location.origin}/?room=${currentRoomId}`
+                  `${window.location.origin}/session/${currentRoomId}`
                 );
                 alert("Invite link copied!");
               }}
@@ -622,7 +622,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
           <div className="qr-box">
             <QRCodeCanvas
-              value={`${window.location.origin}/?room=${currentRoomId}`}
+              value={`${window.location.origin}/session/${currentRoomId}`}
               size={120}
             />
 

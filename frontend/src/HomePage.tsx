@@ -92,6 +92,12 @@ export default function HomePage() {
       }
         const profileInfo: Profile = await res.json()
         setProfile(profileInfo)
+
+        const pendingRoom = sessionStorage.getItem("pendingRoom");
+        if (pendingRoom){
+          sessionStorage.removeItem("pendingRoom");
+          navigate(`/session/${pendingRoom}`);
+        }
       })().catch((error) => {
         console.error(error)
         navigate('/');
