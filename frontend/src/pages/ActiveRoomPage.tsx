@@ -1097,12 +1097,6 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
             </p>
           )}
 
-          {room.music.providers.length > 0 && (
-            <p style={{ fontSize: "13px", color: "#555" }}>
-              Available on: {room.music.providers.join(", ")}
-            </p>
-          )}
-
           {spotifyTrackId && !spotifyReady && !spotifyError && (
             <p className="meta">Connecting to Spotify…</p>
           )}
