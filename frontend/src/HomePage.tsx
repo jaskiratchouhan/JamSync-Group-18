@@ -35,13 +35,6 @@ type Playlist = {
   name: string;
 };
 
-type CurrentUsersSessions = {
-  id: number;
-  name: string;
-  room_code: string;
-  joined_at: string;
-}
-
 type UserTopTrack = {
   name: string;
   artist: string;
@@ -55,13 +48,11 @@ export default function HomePage() {
 
 
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [currentUsersSessions, setCurrentUsersSessions] = useState<CurrentUsersSessions[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [platform, setPlatform] = useState<string | null>(null);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topTracks, setTopTracks] = useState<UserTopTrack[]>([])
-  const [menuOpen, setMenuOpen] = useState(false);
   const [panelOpen, setPanel] = useState<string | null>(null);
   type searchResult = {
     id: number;
@@ -175,21 +166,6 @@ export default function HomePage() {
   },[])
 
 
-  useEffect(() => {
-    if (!profile) return;
-
-    socket.emit("user:sessions:get", {
-      userId: profile.id
-    });
-
-    socket.on("user:sessions", (sessions) => {
-    setCurrentUsersSessions(sessions);
-  });
-    return () => {
-      socket.off("user:sessions");
-    };
-
-  },[profile])
 
  
 
@@ -282,62 +258,13 @@ export default function HomePage() {
   const sessionsList = [];
   for (const session of sessions) {
     sessionsList.push(
-      <div key ={session.id}>
-        <p> Session: {session.id}</p>
-        <p>Users: {session.users.map((user) => user.name).join()}</p>
+      <div key={session.id} className="list-row">
+        <div>
+          <p>Session {session.id}</p>
+          <p className="meta">{session.users.map((user) => user.name).join(", ") || "Empty"}</p>
+        </div>
         <button onClick={() => navigate(`/session/${session.id}`)}>Join</button>
       </div>
-    )
-  }
-  const currentUserSessionsList = [];
-  for (const session of currentUsersSessions) {
-    currentUserSessionsList.push(
-      <div key={session.id}>
-        <p>{session.name}</p>
-        <p>Code: {session.room_code}</p>
-      </div>
-    )
-  }
-
-
-  let profileArea;
-  if (profile) {
-    profileArea = (
-      <>
-      <div className="profile_Area"> 
-        
-      
-        <div className = "info">
-          <p>{profile.display_name}</p>
-          <p>{profile.email}</p>
-          <p>Platform: {profile.platform}</p>
-        </div>
-          {profile.avatar_url && (
-          <>
-            <img src={profile.avatar_url} width={72} />
-            <div className = "logoutContainer">
-              <p onClick = {()=> setMenuOpen((curr)=> !curr)}> &nbsp; {menuOpen ?  (<span style= {{color: "white",fontSize: "22px" }}>▼</span>) : (<span style = {{fontSize: "24px"}} >⚙️</span>) }</p>
-              {menuOpen && (<button onClick = {handleLogout} >Logout</button>)}
-            </div>
-          </>
-        )
-        }
-
-        
-        
-      </div>
-      <div style = {{marginTop: "0.7rem"}}>
-        <button style = {{marginRight: "0.8rem"}}onClick = {() => setPanel("requests")}>Friend Requests</button>
-        <button onClick = {() => {setPanel("all"); grabFriends()}}>View All Friends</button>
-      </div>
-      </>
-    )
-  } else {
-    profileArea = (
-      <>
-        <p>Guest</p>
-        <p onClick = {handleLogout}> &nbsp; &#9668;</p>
-      </>
     )
   }
 
@@ -413,178 +340,190 @@ export default function HomePage() {
   
   return (
     <main className="home-page">
-      <div className="top-portion">
-      <header className="title-portion">
-        <h1>JamSync Live Prototype</h1>
-        <p>You are {profile.display_name}</p>
+      <header className="home-header">
+        <div>
+          <h1>JamSync</h1>
+          <p className="tagline">Listen together</p>
+        </div>
+
+        <div className="profile-chip">
+          {profile.avatar_url && <img src={profile.avatar_url} />}
+
+          <div>
+            <p className="name">{profile.display_name}</p>
+            <p className="platform">{profile.platform ?? "Guest"}</p>
+          </div>
+
+          <button onClick={handleLogout}>Logout</button>
+        </div>
       </header>
 
+      <div className="home-content">
+        <div className="column">
+          <section className="panel">
+            <h2>Sessions</h2>
 
-       <section className="profile-portion">
-                <h2>Profile</h2>
-                {profileArea}
-                </section>
-                </div>
+            <div className="session-actions">
+              <button className="primary" onClick={() => navigate("/session/new")}>
+                Create a session
+              </button>
 
-                <div className = "row friends">
-                  <div className = " col-9 onlineFriends">
-                    <h2>Friends Online</h2>
-                    {allFriends.filter((friend)=> friend.online).length === 0 ? (
-                      <p style = {{color: "white"}}>No friends online</p>
-                    ): (<div className = "onlineFriendsList">
-                      {allFriends.filter((friend)=> friend.online == true).map((friend)=> (
-                        <div key = {friend.friendID} className = "online-friend">
-                          {friend.avatar_url && <img src = {friend.avatar_url}  /> }
-                          <p style = {{color: "white"}}>{friend.display_name} 🟢 </p>
-                        </div>
-                      ))}
-                      </div>)}
-                  </div>
-              <div className = "col-3 friendContainer">
-                <div className = "addFriendContainer">
-                    <h4 style = {{color: "#eae1d1"}}>Add friends</h4>
-                    <div className = "searching" style = {{display: "flex", gap: "6px"}}>
-                      <input value = {searchInput} onChange={(e)=> setSearchInput(e.target.value)} placeholder = "Enter display name" />
-                      <button onClick ={grabSearchResults}>Search</button>
-                    </div>
-                      {searchResults.map((res)=>(
-                        <>
-                        <div key = {res.id} className = "searchRes">
-                          <div style = {{display: "flex", alignItems:"center", gap: "8px"}}>
-                            {res.avatar_url && <img src = {res.avatar_url} />}
-                            <div style = {{display: "flex", flexDirection: "column", width: "100%", flex: 1, lineHeight: 0.3}}>
-                              <p style = {{marginLeft: "0.4rem", whiteSpace: "nowrap"}}>{res.display_name} </p>
-                              <p style = {{marginLeft: "0.4rem", whiteSpace: "nowrap"}}>from <span style = {{fontWeight: 600, color: "white"}}>{res.platform} </span> </p>
-                            </div>
-                            
-                          </div>
-                          
-                          <button style = {{marginLeft: "2rem"}}onClick = {() => sendFriendRequest(res.id)}>Send</button>
-                          
-                        </div>                        
-                        </>
-                        ))}
-                        
-                    </div>
-                    
-              </div>
-                
-            </div>
-
-              <div className = "friendPanel">
-                
-                  {panelOpen == "requests" && (   
-                      <div className = "pending-requests">
-                        <h3>Friend Requests: {pendingRequests.length}</h3>
-                        {pendingRequests.map((req)=> (
-                          <div key = {req.id} className="requests"> 
-                            {req.avatar_url && <img src = {req.avatar_url} />}
-                            <p style= {{color: "white"}}>{req.display_name}</p>
-                            <button onClick= {()=> respondtoRequest(req.id, "accept")}>Accept</button>
-                            <button onClick= {()=> respondtoRequest(req.id, "decline")}>Decline</button>
-                          </div>
-                        ))}
-                      </div>
-                      )}
-
-                    {panelOpen == "all" && (
-                      <>
-                      <p className = "friendsListP" style = {{color: "white"}}>Friends List</p>
-                      <div className = " row allFriends">
-                        
-                      
-                        {allFriends.map((friend)=>(
-                          <div className = "friendsCard  col-lg-4" key = {friend.friendID}>
-                            <p style = {{color: "white"}}>{friend.display_name}</p>
-                            <img style = {{width: "50px", height: "50px"}}src = {friend.avatar_url} />
-                          </div>
-                        ))}
-                        </div>
-                       </>
-                      )}
-                      
-                </div>
-                  {platform === "spotify" && (
-                  <section className="toptracks">
-                    <h2 style={{color:"white"}}>
-                      Tracks You Love
-                    </h2>
-                    <div className="tracklist">
-                      {topTracks.map((track) => (
-                        <div className="track-layout" key={track.name}>
-
-                          {track.image && (
-                            <img src={track.image} width="100" height="100"></img>
-                          )}
-                          <p style={{color:"white"}}>
-                            {track.name}
-                          </p>
-                          <p style={{color:"white"}}>
-                            {track.artist}
-                          </p>
-                          </div>
-                      ))}
-                    </div>
-                  </section>
-                  )}
-
-            
-                <div className="bottom-portion">
-
-                  
-            
-            {platform && (
-        <section className="playlists">
-          <h2>{platform} playlists</h2>
-          <ul>
-            {playlists.map((playlist) => (
-              <li key={playlist.id}>{playlist.name}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-      <div className="sessions-portion">
-
-             <section>
-                <h2>Sessions</h2>
-              <div className="session-buttons">
-
- 
-
-     <button onClick={() => navigate("/session/new")}> Create Session</button>
-
-     
-{/* 
-      <button onClick={() => setShouldCreateRoom(true)}>
-        Create Chat
-      </button> */}
-
-
-      <div className="join-box">
-        <input 
-                value={roomInput} onChange={(e)=> setRoomInput(e.target.value)}
-
-                placeholder="Enter the Session Code" />
-                <button onClick={() => {
+              <div className="join-box">
+                <input
+                  value={roomInput}
+                  onChange={(e) => setRoomInput(e.target.value)}
+                  placeholder="Enter a session code"
+                />
+                <button
+                  onClick={() => {
                     const trimmedRoomInput = roomInput.trim();
                     if (trimmedRoomInput.length !== 0) {
-                    navigate(`/session/${trimmedRoomInput}`)}}}>Join Session</button>
-      </div>
-      </div>
-      </section>
+                      navigate(`/session/${trimmedRoomInput}`);
+                    }
+                  }}
+                >
+                  Join
+                </button>
+              </div>
+            </div>
 
-      <section>
-        <h2>Joined Sessions</h2>
-        {currentUserSessionsList}
-      </section>
-      
-                  <section className="avail-sess">
-                <h2 className = "avail">Available Sessions</h2>
-                {sessionsList}
-                
+            <h3>Available now</h3>
+            {sessionsList.length === 0 ? (
+              <p className="empty">No public sessions right now.</p>
+            ) : (
+              <div className="list">{sessionsList}</div>
+            )}
+          </section>
+
+          {platform === "spotify" && topTracks.length > 0 && (
+            <section className="panel">
+              <h2>Tracks you love</h2>
+
+              <div className="tracklist">
+                {topTracks.map((track) => (
+                  <div className="track-layout" key={track.name}>
+                    {track.image && <img src={track.image} />}
+                    <p>{track.name}</p>
+                    <p className="meta">{track.artist}</p>
+                  </div>
+                ))}
+              </div>
             </section>
+          )}
+        </div>
+
+        <div className="column">
+          <section className="panel">
+            <h2>Friends</h2>
+
+            <div className="search-box">
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by display name"
+              />
+              <button onClick={grabSearchResults}>Search</button>
             </div>
+
+            {searchResults.length > 0 && (
+              <div className="list">
+                {searchResults.map((res) => (
+                  <div key={res.id} className="list-row">
+                    <div className="person">
+                      {res.avatar_url && <img src={res.avatar_url} />}
+                      <div>
+                        <p>{res.display_name}</p>
+                        <p className="meta">{res.platform ?? "Guest"}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => sendFriendRequest(res.id)}>Add</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <h3>Online</h3>
+            {allFriends.filter((friend) => friend.online).length === 0 ? (
+              <p className="empty">No friends online.</p>
+            ) : (
+              <div className="online-friends">
+                {allFriends
+                  .filter((friend) => friend.online)
+                  .map((friend) => (
+                    <div key={friend.friendID} className="online-friend">
+                      {friend.avatar_url && <img src={friend.avatar_url} />}
+                      <span>{friend.display_name}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            <h3>Requests and friends</h3>
+            <div className="tabs">
+              <button onClick={() => setPanel("requests")}>
+                Requests ({pendingRequests.length})
+              </button>
+              <button onClick={() => { setPanel("all"); grabFriends(); }}>
+                All friends
+              </button>
             </div>
+
+            {panelOpen === "requests" && (
+              pendingRequests.length === 0 ? (
+                <p className="empty">No pending requests.</p>
+              ) : (
+                <div className="list">
+                  {pendingRequests.map((req) => (
+                    <div key={req.id} className="list-row">
+                      <div className="person">
+                        {req.avatar_url && <img src={req.avatar_url} />}
+                        <p>{req.display_name}</p>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button onClick={() => respondtoRequest(req.id, "accept")}>Accept</button>
+                        <button onClick={() => respondtoRequest(req.id, "decline")}>Decline</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {panelOpen === "all" && (
+              allFriends.length === 0 ? (
+                <p className="empty">No friends yet.</p>
+              ) : (
+                <div className="list">
+                  {allFriends.map((friend) => (
+                    <div key={friend.friendID} className="list-row">
+                      <div className="person">
+                        {friend.avatar_url && <img src={friend.avatar_url} />}
+                        <p>{friend.display_name}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </section>
+
+          {platform && (
+            <section className="panel">
+              <h2>Your {platform} playlists</h2>
+
+              {playlists.length === 0 ? (
+                <p className="empty">No playlists found.</p>
+              ) : (
+                <ul className="playlist-list">
+                  {playlists.map((playlist) => (
+                    <li key={playlist.id}>{playlist.name}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

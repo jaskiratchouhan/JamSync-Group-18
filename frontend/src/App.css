@@ -24,19 +24,20 @@ button:disabled {
 }
 
 
-.home-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 16px;
-  background: #0d0c0a;
+:root {
+  --bg: #121212;
+  --surface: #1e1e1e;
+  --border: #333333;
+  --cream: #f0f0f0;
+  --muted: #a0a0a0;
 }
 
+.home-page {
+  min-height: 100vh;
+  background: var(--bg);
+}
 
 .home-page button,
-.home-page input,
 .room-page button {
   padding: 10px 14px;
   border: 1px solid #222;
@@ -45,132 +46,241 @@ button:disabled {
 }
 
 .home-page button {
-  background: #29241e;
-  color:#eadfca;
-  border: 1px solid #3e392e;
-  
+  background: #2a2a2a;
+  color: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 15px;
 }
-.profile_Area {
-  background:#1c1a17;
+
+.home-page button:hover {
+  background: #363636;
+}
+
+.home-page input {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #181818;
+  color: var(--cream);
+  font-size: 15px;
+}
+
+.home-page input::placeholder {
+  color: var(--muted);
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 20px 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.home-header h1 {
+  margin: 0;
+  font-size: 26px;
+  color: var(--cream);
+}
+
+.home-header .tagline {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.profile-chip {
   display: flex;
   align-items: center;
-  gap: 7px;
-  /* background:#5bb1e3; */
-  border-radius: 10px;
-  font-family:Georgia, 'Times New Roman', Times, serif;
-  border: 1px solid #c9963f;
-  padding-right: 1.8rem;
-  border-radius: 38px;
-  justify-content: flex-end;
-  width: auto;
-  height: 65%;
-  margin-left: auto;
-  
-  
-}
-
-.profile_Area img{
-  width: 14%;
-  height: 14%;
-  border-radius: 50%;
-  padding: 0.45rem;
-  background-color: #c9963f;
-  
-}
-
-.info{
-  background-color:#c9963f ;
-  border-radius: 15px;
-  padding: 1rem;
-  background-color: transparent;
-  text-align: right;
-  flex-direction: column;
-  align-items: flex-end;
-  
-}
-
-.info {
-  flex: 1;
-  min-width: 0;
-}
-.info p:first-child{
-  color: white;
-  font-size: 20px;
-  font-weight: 800;
-  margin: 0;
-}
-
-.info p:last-child{
-  color: white;
-  font-size: 16px;
-  margin: 0;
-}
-
-.top-portion{
-  display:flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  width:100%;
-  padding:15px 36px;
-  background-color: #1b1916;
-  border-bottom: 1px solid #2c2923;
-  
-  
-}
-.top-portion h1 {
-  font-size: 52px;
-  color: white;
-  font-family: "Montserrat", sans-serif;
-  line-height: 1.2;
-}
-.top-portion p{
-  color: white;
-  font-family: "Raleway";
-  font-size: 19px;
-  letter-spacing: 1.5px;
-}
-
-.bottom-portion {
-  display:flex;
-  gap:25px;
-  width:100%;
-  padding:27px 34px;
-
-  align-items: flex-start;
-}
-.playlists {
-  flex:1;
-
-}
-
-
-.sessions-portion {
-  flex:1;
-  background:#1b1916;
-  padding: 13px;
-  
-}
-.sessions-portion p {
-  color:#d9c7a4
-}
-
-.session-buttons {
-  margin-top: 30px;
-  display:flex;
   gap: 12px;
-  align-items:center;
-  flex-direction: column;
+  padding: 8px 12px;
+  background: #181818;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
+
+.profile-chip img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-chip .name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.profile-chip .platform {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.home-content {
+  padding: 32px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.panel h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: var(--cream);
+}
+
+.panel h3 {
+  margin: 24px 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.session-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .join-box {
   display: flex;
   gap: 8px;
-  margin-top: 2rem;
 }
-.avail{
-  margin-top: 2.7rem;
+
+.join-box input {
+  flex: 1;
 }
-.avail-sess {
-  font-size:25px;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #181818;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.list-row p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--cream);
+}
+
+.list-row .meta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.person img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.tracklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 16px;
+}
+
+.track-layout {
+  text-align: center;
+}
+
+.track-layout img {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.track-layout p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--cream);
+}
+
+.track-layout .meta {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.playlist-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playlist-list li {
+  padding: 10px 14px;
+  background: #181818;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--cream);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .home-content {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
+  }
 }
 
 .room-page {
@@ -325,158 +435,33 @@ button:disabled {
   color: black;
 }
 
-.home-page h1,
-.home-page h2 {
-  
-  color:#eae1d1;
-}
-
-.playlists {
-  background: #1b1916;
-  text-align: center;
-}
-
-.playlists ul {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0;
+.search-box {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color:#d9c7a4
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.playlists h2 {
-  color:#c9963f;
-  font-size:42px;
-}
-.sessions-portion h2 {
-  color:#c9963f;
-  font-size:42px;
-}
-.sessions-portion button {
-  font-size: 25px;
-}
-.playlists li {
-  color: #d9c7a4;
-  font-size:25px;
+.search-box input {
+  flex: 1;
 }
 
-.logoutContainer{
+.online-friends {
   display: flex;
-  flex-direction: column;
-  position: relative;
-  align-self: flex-start;
-  margin-top: 0.8rem;
-  margin-right: 0.4rem;
-  margin-left: 1rem;
- 
-}
-.logoutContainer p{
-  transition: all 0.3s ease-in-out;
-}
-.logoutContainer p:hover{
-
-  cursor: pointer;
-  
-}
-
-
-.logoutContainer button {
-  position: absolute;
-  top: 60px;
-  left: -21px;
-  font-size: 15px;
-  
-}
-
-.searchRes p{
-  color: white;
-}
-
-.onlineFriendsList{
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 17px;
-  flex-shrink: 0;
   flex-wrap: wrap;
-}
-.onlineFriendsList img {
-  width: 50px;
-  height: 50px;
+  gap: 16px;
 }
 
-.addFriendContainer button{
-  margin-top: 1rem;
-  
-}
-
-.addFriendContainer h4{
-  font-size: 21px;
-}
-.addFriendContainer input{
-  font-size: 15px;
-  height: 80%;
-
-}
-.searching{
-  align-items: center;
-  
-}
-.searching button{
-  margin: 0;
-  
-}
-
-.searchRes{
+.online-friend {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  text-align: left;
-}
-.searchRes img{
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--cream);
 }
 
-.pending-requests h3{
-  color: #c9963f ;
-   font-family: "Montserrat", sans-serif;
-  line-height: 1.2;
-  font-weight: 600;
-
-}
-.pending-requests button {
-  margin: 0.4rem;
-}
-.allFriends{
-  display: flex;
-}
-
-.friendsListP{
-  font-size: 40px;
-  color: white;
-  font-family: "Montserrat", sans-serif;
-  line-height: 1.2;
-  font-weight: 600;
-
-  margin-bottom: 2rem;
-}
-
-.tracklist {
-  display:flex;
-  gap:120px;
-}
-
-.track-layout {
-  text-align: center;
-}
-
-.track-layout img {
-  border-radius: 18px;
-  width:100px;
-  height:100px;
+.online-friend img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
 }
