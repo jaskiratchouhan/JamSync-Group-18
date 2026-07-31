@@ -1047,10 +1047,6 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
 
               {roomUser.isHost && <p className="badge">Host</p>}
 
-              {roomUser.transcript && !cannotHearUser && (
-                <p className="subtitle">{roomUser.transcript}</p>
-              )}
-
               <div className="button-row">
                 {isCurrentUser && (
                   <button onClick={toggleSelfMute}>
