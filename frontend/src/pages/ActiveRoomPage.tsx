@@ -51,11 +51,31 @@ declare global {
   interface Window {
     SpeechRecognition?: SpeechRecognitionConstructor;
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
-
+    Spotify?: SpotifyNamespace;
+    onSpotifyWebPlaybackSDKReady?: () => void;
     YT?: YouTubeNamespace;
     onYouTubeIframeAPIReady?: () => void;
   }
 }
+
+type SpotifyPlayerEvent = { device_id?: string; message?: string };
+
+type SpotifyPlayer = {
+  connect: () => void;
+  disconnect: () => void;
+  addListener: (event: string, cb: (e: SpotifyPlayerEvent) => void) => void;
+  resume: () => void;
+  pause: () => void;
+  activateElement?: () => void;
+};
+
+type SpotifyNamespace = {
+  Player: new (options: {
+    name: string;
+    getOAuthToken: (cb: (token: string) => void) => void;
+    volume?: number;
+  }) => SpotifyPlayer;
+};
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
@@ -86,7 +106,7 @@ type Props = {
   shouldCreateRoom: boolean;
 };
 
-const socket: Socket = io("http://127.0.0.1:3001", {withCredentials: true});
+const socket: Socket = io(import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001", {withCredentials: true});
 
 let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
 
@@ -181,6 +201,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [searchResults, setSearchResults] = useState<SongResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [spotifyReady, setSpotifyReady] = useState(false);
+  const [playbackEnabled, setPlaybackEnabled] = useState(false);
+  const [spotifyError, setSpotifyError] = useState("");
+  const [micError, setMicError] = useState(false);
 
   const [youtubePlayerReady, setYoutubePlayerReady] =
     useState(false);
@@ -196,6 +220,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   ] = useState<string | null>(null);
 
   const selfMutedRef = useRef(false);
+  const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
+  const spotifyDeviceRef = useRef<string | null>(null);
+  const spotifyTokenRef = useRef<string | null>(null);
+  const loadedTrackRef = useRef<string | null>(null);
 
   const youtubePlayerElementRef =
     useRef<HTMLDivElement | null>(null);
@@ -219,6 +247,116 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const hostUser = room?.users.find(
     (u) => u.id === room?.hostId
     );
+
+  const musicPlaying = room?.music.playing ?? false;
+  const musicPosition = room?.music.currentTime ?? 0;
+  const spotifyTrackId =
+    room?.music.provider === "spotify" ? room?.music.providerTrackId ?? null : null;
+  const musicStartedAt = room?.music.startedAt ?? 0;
+
+  async function fetchSpotifyToken(): Promise<string | null> {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001"}/api/spotify-token`,
+        { credentials: "include" }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      spotifyTokenRef.current = data.accessToken;
+      return data.accessToken;
+    } catch {
+      return null;
+    }
+  }
+
+  useEffect(() => {
+    function initPlayer() {
+      const spotify = window.Spotify;
+      if (!spotify || spotifyPlayerRef.current) return;
+
+      const player = new spotify.Player({
+        name: "JamSync",
+        getOAuthToken: (cb) => {
+          fetchSpotifyToken().then((t) => {
+            if (t) cb(t);
+            else setSpotifyError("Log in with Spotify Premium to hear playback.");
+          });
+        },
+        volume: 0.8
+      });
+
+      player.addListener("ready", ({ device_id }) => {
+        if (!device_id) return;
+        spotifyDeviceRef.current = device_id;
+        setSpotifyReady(true);
+      });
+      player.addListener("not_ready", () => setSpotifyReady(false));
+      player.addListener("authentication_error", () =>
+        setSpotifyError("Log in with Spotify Premium to hear playback.")
+      );
+      player.addListener("account_error", () =>
+        setSpotifyError("Spotify Premium is required for playback.")
+      );
+
+      player.connect();
+      spotifyPlayerRef.current = player;
+    }
+
+    if (window.Spotify) {
+      initPlayer();
+    } else {
+      if (!document.getElementById("spotify-sdk")) {
+        const tag = document.createElement("script");
+        tag.id = "spotify-sdk";
+        tag.src = "https://sdk.scdn.co/spotify-player.js";
+        document.body.appendChild(tag);
+      }
+      window.onSpotifyWebPlaybackSDKReady = initPlayer;
+    }
+
+    return () => {
+      spotifyPlayerRef.current?.disconnect?.();
+      spotifyPlayerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const player = spotifyPlayerRef.current;
+    const deviceId = spotifyDeviceRef.current;
+    if (!player || !spotifyReady || !playbackEnabled || !deviceId) return;
+
+    if (!spotifyTrackId) {
+      player.pause?.();
+      return;
+    }
+
+    const loadKey = `${spotifyTrackId}:${musicStartedAt}`;
+
+    if (loadedTrackRef.current !== loadKey) {
+      loadedTrackRef.current = loadKey;
+      if (musicPlaying) {
+        fetchSpotifyToken().then((token) => {
+          if (!token) return;
+
+          fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              uris: [`spotify:track:${spotifyTrackId}`],
+              position_ms: Math.floor(musicPosition * 1000)
+            })
+          }).catch(() => {});
+        });
+      }
+      return;
+    }
+
+    if (musicPlaying) player.resume?.();
+    else player.pause?.();
+  }, [spotifyTrackId, musicStartedAt, musicPlaying, spotifyReady, playbackEnabled]);
 
   const hasRoom = room !== null;
 
@@ -390,6 +528,12 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   useEffect(() => {
     async function start() {
       leavingRef.current = false;
+
+      const micRequest = navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false
+      });
+
       if (shouldCreateRoom) {
         socket.emit("room:create", { user });
       } else {
@@ -397,10 +541,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false
-        });
+        const stream = await micRequest;
 
         localStreamRef.current = stream;
         stream.getAudioTracks().forEach((track) => {
@@ -412,7 +553,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
         startSpeechToText();
       } catch (error) {
         console.error("Mic error:", error);
-        alert(`Mic failed: ${error instanceof Error ? error.name : "Unknown error"}`);
+        setMicError(true);
       }
     }
 
@@ -422,6 +563,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       currentRoomIdRef.current = roomId;
       setCurrentRoomId(roomId);
       setRoom(room);
+      window.history.replaceState(null, "", `/session/${roomId}`);
     });
 
     socket.on("room:joined", ({ roomId, room }) => {
@@ -764,7 +906,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       userId: user.id
     });
 
-    window.location.href = `/homepage?userId=${user.dbUserId}`;
+    window.location.href = "/homepage";
   }
 
   if (roomError) {
@@ -783,6 +925,8 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
           <p>{room.users.length} Users Connected</p>
 
+          {micError && <p>Microphone is off, so nobody can hear you.</p>}
+
           <div
             style={{
               display: "flex",
@@ -796,7 +940,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `${window.location.origin}/?room=${currentRoomId}`
+                  `${window.location.origin}/session/${currentRoomId}`
                 );
                 alert("Invite link copied!");
               }}
@@ -807,7 +951,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
           <div className="qr-box">
             <QRCodeCanvas
-              value={`${window.location.origin}/?room=${currentRoomId}`}
+              value={`${window.location.origin}/session/${currentRoomId}`}
               size={120}
             />
 
@@ -963,6 +1107,33 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             <p style={{ fontSize: "13px", color: "#555" }}>
               Available on: {room.music.providers.join(", ")}
             </p>
+          )}
+
+          {spotifyTrackId && !playbackEnabled && (
+            <button
+              onClick={() => {
+                setPlaybackEnabled(true);
+                spotifyPlayerRef.current?.activateElement?.();
+              }}
+            >
+              Enable Spotify playback
+            </button>
+          )}
+
+          {spotifyTrackId && playbackEnabled && !spotifyReady && !spotifyError && (
+            <p style={{ fontSize: "13px", color: "#555" }}>
+              Connecting to Spotify…
+            </p>
+          )}
+
+          {spotifyTrackId && playbackEnabled && spotifyReady && !spotifyError && (
+            <p style={{ fontSize: "13px", color: "#1db954" }}>
+              {musicPlaying ? "Now listening" : "Paused"}
+            </p>
+          )}
+
+          {spotifyTrackId && spotifyError && (
+            <p style={{ fontSize: "13px", color: "#8a4b00" }}>{spotifyError}</p>
           )}
 
           {isHost && (

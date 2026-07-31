@@ -62,7 +62,7 @@ button:disabled {
   padding-right: 1.8rem;
   border-radius: 38px;
   justify-content: flex-end;
-  width: 85%;
+  width: auto;
   height: 65%;
   margin-left: auto;
   
@@ -87,6 +87,11 @@ button:disabled {
   flex-direction: column;
   align-items: flex-end;
   
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
 }
 .info p:first-child{
   color: white;
