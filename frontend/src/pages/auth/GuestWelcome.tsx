@@ -1,16 +1,27 @@
-import {useNavigate, useSearchParams} from "react-router-dom";
+import {useEffect, useState} from "react";
+import {useNavigate} from "react-router-dom";
 import styles from "./GuestWelcome.module.css";
+
+const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
 
 export default function GuestWelcome(){
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const guestId = searchParams.get("guest_id");
-    const guestName = searchParams.get("guest_name");
+    const [guestName, setGuestName] = useState("");
+
+    useEffect(() => {
+        fetch(`${BACKEND_URL}/api/profile`, {credentials: "include"})
+            .then((res) => {
+                if (!res.ok) throw new Error("Not signed in");
+                return res.json();
+            })
+            .then((profile) => setGuestName(profile.display_name))
+            .catch(() => navigate("/"));
+    }, []);
 
     function getStarted(){
-        navigate(`/homepage?guest_id=${guestId}&guest_name=${encodeURIComponent(guestName ?? "")}`)
+        navigate("/homepage")
     }
-    
+
     return(
         <>
         <div className = {styles.page}>

@@ -166,7 +166,7 @@ app.get('/auth/spotify/callback', async function(req, res) {
     }
     // sets user id into the session object
     req.session.user = {userId: String(user.id)}
-    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
+    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage"
     res.redirect(frontPageUrl);
   }
   catch(err) {
@@ -193,7 +193,7 @@ app.get("/auth/guest", async function(req,res) {
   try{
     const user = await helpers.insertBasicUser();
     req.session.user = {userId: String(user.id)}
-    res.redirect(`${frontEndUrl}/guest-welcome?guest_id=${user.id}&guest_name=${encodeURIComponent(user.display_name)}`)
+    res.redirect(`${frontEndUrl}/guest-welcome`)
   }
   catch(err){
     console.error(err);
@@ -283,7 +283,7 @@ app.get('/auth/youtube/callback', async function(req, res) {
       return res.status(500).send("Failed to save user");
     }
     req.session.user = {userId: String(user.id)}
-    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage?userId=" + user.id
+    const frontPageUrl = frontEndUrl.replace(/\/+$/, '') + "/homepage"
     res.redirect(frontPageUrl);
   }
   catch(err) {

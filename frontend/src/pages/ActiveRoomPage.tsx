@@ -76,6 +76,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const [spotifyReady, setSpotifyReady] = useState(false);
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
   const [spotifyError, setSpotifyError] = useState("");
+  const [micError, setMicError] = useState(false);
   const selfMutedRef = useRef(false);
   const spotifyPlayerRef = useRef<SpotifyPlayer | null>(null);
   const spotifyDeviceRef = useRef<string | null>(null);
@@ -366,11 +367,19 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     async function start() {
       leavingRef.current = false;
 
+      const micRequest = navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: false
+      });
+
+      if (shouldCreateRoom) {
+        socket.emit("room:create", { user });
+      } else {
+        socket.emit("room:join", { roomId, user });
+      }
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false
-        });
+        const stream = await micRequest;
 
         localStreamRef.current = stream;
         stream.getAudioTracks().forEach((track) => {
@@ -382,13 +391,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
         startSpeechToText();
       } catch (error) {
         console.error("Mic error:", error);
-        alert(`Mic failed: ${error instanceof Error ? error.name : "Unknown error"}`);
-      }
-
-      if (shouldCreateRoom) {
-        socket.emit("room:create", { user });
-      } else {
-        socket.emit("room:join", { roomId, user });
+        setMicError(true);
       }
     }
 
@@ -398,6 +401,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       currentRoomIdRef.current = roomId;
       setCurrentRoomId(roomId);
       setRoom(room);
+      window.history.replaceState(null, "", `/session/${roomId}`);
     });
 
     socket.on("room:joined", ({ roomId, room }) => {
@@ -573,7 +577,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       userId: user.id
     });
 
-    window.location.href = `/homepage?userId=${user.dbUserId}`;
+    window.location.href = "/homepage";
   }
 
   if (roomError) {
@@ -592,6 +596,8 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
           <p>{room.users.length} Users Connected</p>
 
+          {micError && <p>Microphone is off, so nobody can hear you.</p>}
+
           <div
             style={{
               display: "flex",
@@ -605,7 +611,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `${window.location.origin}/?room=${currentRoomId}`
+                  `${window.location.origin}/session/${currentRoomId}`
                 );
                 alert("Invite link copied!");
               }}
@@ -616,7 +622,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
           <div className="qr-box">
             <QRCodeCanvas
-              value={`${window.location.origin}/?room=${currentRoomId}`}
+              value={`${window.location.origin}/session/${currentRoomId}`}
               size={120}
             />
 

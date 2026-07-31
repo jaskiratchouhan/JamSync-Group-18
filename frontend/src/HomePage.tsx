@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import toast from 'react-hot-toast';
 
-import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { io} from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import "./App.css";
@@ -48,77 +47,11 @@ type UserTopTrack = {
   artist: string;
   image: string | null;
 }
-function makeRandomUser() {
-  const id = crypto.randomUUID();
-
-  const colors = [
-    "#FF8A80",
-    "#FFB74D",
-    "#FFF176",
-    "#81C784",
-    "#4DD0E1",
-    "#64B5F6",
-    "#BA68C8"
-  ];
-
-  const adjectives = [
-  "Anonymous",
-  "Happy",
-  "Chill",
-  "Sneaky",
-  "Brave",
-  "Lucky",
-  "Cosmic",
-  "Jolly",
-  "Quiet",
-  "Wild"
-];
-
-const animals = [
-  "Giraffe",
-  "Panda",
-  "Tiger",
-  "Koala",
-  "Fox",
-  "Otter",
-  "Penguin",
-  "Falcon",
-  "Dolphin",
-  "Bear"
-];
-
-function makeRandomName() {
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-  const number = Math.floor(1000 + Math.random() * 9000);
-
-  return `${adjective} ${animal} ${number}`;
-}
-
-  return {
-    id,
-    name: makeRandomName(),
-    color: colors[Math.floor(Math.random() * colors.length)]
-  };
-}
-
 export default function HomePage() {
-  //const [user] = useState(makeRandomUser);
-  const params = new URLSearchParams(window.location.search);
-  const roomFromUrl = params.get("room");
-  const userId = params.get("userId");
-  const guestId = params.get("guest_id");
-  const dbUserId = Number(userId ?? guestId);
   const navigate = useNavigate();
 
-  const [user] = useState(() => ({
-    ...makeRandomUser(),
-    dbUserId
-  }));
 
-  const [roomInput, setRoomInput] = useState(roomFromUrl ?? "");
-  const [currentActiveRoomID, setCurrentActiveRoomID] = useState<string | null>(roomFromUrl);
-  const [makingRoom, setMakingRoom] = useState(false);
+  const [roomInput, setRoomInput] = useState("");
 
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -150,21 +83,26 @@ export default function HomePage() {
   const [allFriends, setAllFriends] = useState<friends[]>([]);
 
   useEffect (() => {
-    // if (!userId) return;
-
     (async () => {
-    const res = await fetch(`${BACKEND_URL}/api/profile?userId=${userId}`, {credentials: 'include'})
+    const res = await fetch(`${BACKEND_URL}/api/profile`, {credentials: 'include'})
       if (!res.ok) {
         throw new Error("Something went wrong. Could not load the user profile.");
       }
         const profileInfo: Profile = await res.json()
         setProfile(profileInfo)
+
+        const pendingRoom = sessionStorage.getItem("pendingRoom");
+        if (pendingRoom){
+          sessionStorage.removeItem("pendingRoom");
+          navigate(`/session/${pendingRoom}`);
+        }
       })().catch((error) => {
         console.error(error)
+        navigate('/');
 
-      
+
     });
-}, []);
+}, [navigate]);
   useEffect(() => {
     socket.emit("sessions:getAll");
 
@@ -209,7 +147,7 @@ export default function HomePage() {
   useEffect(() => {
     
 
-    fetch(`${BACKEND_URL}/api/playlists?userId=${userId}`, {credentials: 'include'})
+    fetch(`${BACKEND_URL}/api/playlists`, {credentials: 'include'})
       .then((res) => {
         if (!res.ok) throw new Error("Could not load playlists");
         return res.json();
@@ -238,9 +176,10 @@ export default function HomePage() {
 
 
   useEffect(() => {
+    if (!profile) return;
 
     socket.emit("user:sessions:get", {
-      userId: dbUserId
+      userId: profile.id
     });
 
     socket.on("user:sessions", (sessions) => {
@@ -250,7 +189,7 @@ export default function HomePage() {
       socket.off("user:sessions");
     };
 
-  },[])
+  },[profile])
 
  
 
@@ -304,24 +243,10 @@ export default function HomePage() {
    
 
 
-  const roomInfo = currentActiveRoomID || makingRoom;
-
-
-  if (roomInfo) {
-
-
-  
-
- 
-
-    return (
-        <ActiveRoomPage
-            user={user}
-            roomId={currentActiveRoomID}
-            shouldCreateRoom={makingRoom}
-            />
-    );
+  if (!profile) {
+    return <p className="loading">Loading...</p>;
   }
+
 
   async function handleLogout(){
 
@@ -360,7 +285,7 @@ export default function HomePage() {
       <div key ={session.id}>
         <p> Session: {session.id}</p>
         <p>Users: {session.users.map((user) => user.name).join()}</p>
-        <button onClick={() => setCurrentActiveRoomID(session.id)}>Join</button>
+        <button onClick={() => navigate(`/session/${session.id}`)}>Join</button>
       </div>
     )
   }
@@ -491,7 +416,7 @@ export default function HomePage() {
       <div className="top-portion">
       <header className="title-portion">
         <h1>JamSync Live Prototype</h1>
-        <p>You are {user.name}</p>
+        <p>You are {profile.display_name}</p>
       </header>
 
 
@@ -626,7 +551,7 @@ export default function HomePage() {
 
  
 
-     <button onClick={() => setMakingRoom(true)}> Create Session</button>
+     <button onClick={() => navigate("/session/new")}> Create Session</button>
 
      
 {/* 
@@ -643,7 +568,7 @@ export default function HomePage() {
                 <button onClick={() => {
                     const trimmedRoomInput = roomInput.trim();
                     if (trimmedRoomInput.length !== 0) {
-                    setCurrentActiveRoomID(trimmedRoomInput)}}}>Join Session</button>
+                    navigate(`/session/${trimmedRoomInput}`)}}}>Join Session</button>
       </div>
       </div>
       </section>
