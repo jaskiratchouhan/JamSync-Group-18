@@ -1,143 +1,94 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Bungee&family=Dancing+Script:wght@600&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Fredoka:wdth,wght@87.5,300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:wght@100..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Pacifico&family=Raleway:ital,wght@0,100..900;1,100..900&family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
-:root{
-
-    --backgroundcolor: #1a2a52;
-    --header: #33477c;
-    --textcolor: #d4e4ff;
-    --secondarycolor: #2d4373;
-    --placeholder: #7a9bbf;
-    --thirdcolor: #81a8cb;
-    
-}
-.page{
-    background-color: var(--backgroundcolor);
+.page {
     min-height: 100vh;
-   
-    
-}
-.cardContainer{
+    background: #121212;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 45px;
+    gap: 40px;
+    padding: 32px;
 }
-.card{
-    position: relative;
-    background-color: var(--header);
-    border: 1px solid rgb(106, 121, 167);
-    border-radius: 12px;
-    padding: 27px;
-    width: 280px;
-    height: 370px;
+
+.header {
     text-align: center;
-    /* color: var(--textcolor); */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    
 }
-.icon{
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+
+.title {
+    margin: 0;
+    font-size: 28px;
+    color: #f0f0f0;
+}
+
+.subheading {
+    margin: 8px 0 0;
+    font-size: 15px;
+    font-weight: 400;
+    color: #a0a0a0;
+}
+
+.cardContainer {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: stretch;
     justify-content: center;
-    
+    gap: 24px;
 }
-.card h2{
-    margin-bottom: 7px;
-    font-size: 26px;
-    font-family: "Montserrat", sans-serif;
-    color: white;
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 260px;
+    padding: 24px;
+    background: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    text-align: center;
 }
-.card p{
-    letter-spacing: 2px;
-    font-family: "Raleway", sans-serif;
-    
-    color: var(--placeholder);
-    
-    font-size: 16px;
-    margin-bottom: 9px;
-    transition: all 0.4s ease-in-out;
+
+.card h2 {
+    margin: 0;
+    font-size: 18px;
+    color: #f0f0f0;
 }
-.signin{
-    padding: 10px;
-    border-radius: 5px;
+
+.card p {
+    flex: 1;
+    margin: 0;
     font-size: 14px;
+    color: #a0a0a0;
 }
-.card:hover{
-    transform:scale(1.01);
-}
-.card button:hover{
-    transform: translateY(-2px)
-}
-.card img{
-   width: 90px;
-   height: 90px;
-   margin-bottom: 20px;
-   margin-top: 20px;
-   object-fit:cover;
-   border-radius: 50%;
-}
-.guestImg{
-    background-color: #263968;
-    padding: 0.6rem;
+
+.card img {
+    width: 64px;
+    height: 64px;
+    padding: 12px;
+    background: #181818;
     border-radius: 50%;
-}
-.spotifyImg{
-    background-color: #16532e;
-    padding: 0.6rem;
-}
-.title{
-    color: #7a9bbf;
-    color: white;
-    line-height: 1.4;
-    border-radius: 20px; 
-    font-family: "Montserrat"; 
-    letter-spacing: 2.4px;
-     
-}
-.subheading{
-    color: #7a9bbf;
-    padding-bottom: 60px;
-    font-family: "Montserrat"; 
-    letter-spacing: 2.4px;
-    font-size: 25px;
-
+    object-fit: contain;
 }
 
-.signin, .spotifyButton, .youtubeButton{
-    position: absolute;
-    left: 0;
-    right:0;
-    margin: 0 auto;
-    font-size: 16px;
-    bottom: 25px;
-    width: 80%;
+.card a {
+    width: 100%;
+    text-decoration: none;
+}
+
+.signin,
+.spotifyButton,
+.youtubeButton {
+    width: 100%;
     padding: 10px;
-    border-radius: 18px;
-    border:none;
-    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
-    box-shadow: 12px 10px 12px rgba(0,0,0,0.4);
-    transition: all 0.4s ease-in-out;
+    background: #2a2a2a;
+    color: #f0f0f0;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
 }
-.spotifyButton{
-    color: #10321c;
-    background-color: #44ba6d;
-}
-.page > * {
-    animation: fadeIn 1.3s ease-in; 
-}
-@keyframes fadeIn{
-    0%{
-        opacity: 0;
-        transform: translateY(9px);
-    }
-    100%{
-        opacity:1;
-        transform: translateY(0);  
-    }
-}
-.signin{
-    color: white;
-    background-color: #3d558b;
+
+.signin:hover,
+.spotifyButton:hover,
+.youtubeButton:hover {
+    background: #363636;
 }
