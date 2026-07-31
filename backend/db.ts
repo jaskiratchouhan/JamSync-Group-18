@@ -171,8 +171,13 @@ const helpers = {
         return result.rows[0];
     },
     async getUserTokenByPlatform(platform: string): Promise<User | undefined> {
-        const q = `SELECT * FROM users WHERE platform = $1 AND access_token IS NOT NULL AND (token_expires_at IS NULL OR token_expires_at > now()) ORDER BY token_expires_at DESC NULLS LAST LIMIT 1`;
+        const q = `SELECT * FROM users WHERE platform = $1 AND access_token IS NOT NULL AND (token_expires_at IS NULL OR token_expires_at > now() OR refresh_token IS NOT NULL) ORDER BY token_expires_at DESC NULLS LAST LIMIT 1`;
         const result = await pool.query(q, [platform]);
+        return result.rows[0];
+    },
+    async updateUserTokens(id: number, access_token: string, refresh_token: string | null, token_expires_at: Date): Promise<User | undefined> {
+        const q = `UPDATE users SET access_token = $2, refresh_token = $3, token_expires_at = $4 WHERE id = $1 RETURNING *`;
+        const result = await pool.query(q, [id, access_token, refresh_token, token_expires_at]);
         return result.rows[0];
     },
     async deleteUser(id: number){

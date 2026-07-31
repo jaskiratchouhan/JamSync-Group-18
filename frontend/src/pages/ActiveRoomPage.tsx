@@ -100,6 +100,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const musicPosition = room?.music.currentTime ?? 0;
   const spotifyTrackId =
     room?.music.provider === "spotify" ? room?.music.providerTrackId ?? null : null;
+  const musicStartedAt = room?.music.startedAt ?? 0;
 
   async function fetchSpotifyToken(): Promise<string | null> {
     try {
@@ -170,7 +171,6 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   useEffect(() => {
     const player = spotifyPlayerRef.current;
     const deviceId = spotifyDeviceRef.current;
-    const token = spotifyTokenRef.current;
     if (!player || !spotifyReady || !playbackEnabled || !deviceId) return;
 
     if (!spotifyTrackId) {
@@ -178,27 +178,33 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       return;
     }
 
-    if (loadedTrackRef.current !== spotifyTrackId) {
-      loadedTrackRef.current = spotifyTrackId;
-      if (musicPlaying && token) {
-        fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            uris: [`spotify:track:${spotifyTrackId}`],
-            position_ms: Math.floor(musicPosition * 1000)
-          })
-        }).catch(() => {});
+    const loadKey = `${spotifyTrackId}:${musicStartedAt}`;
+
+    if (loadedTrackRef.current !== loadKey) {
+      loadedTrackRef.current = loadKey;
+      if (musicPlaying) {
+        fetchSpotifyToken().then((token) => {
+          if (!token) return;
+
+          fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              uris: [`spotify:track:${spotifyTrackId}`],
+              position_ms: Math.floor(musicPosition * 1000)
+            })
+          }).catch(() => {});
+        });
       }
       return;
     }
 
     if (musicPlaying) player.resume?.();
     else player.pause?.();
-  }, [spotifyTrackId, musicPlaying, spotifyReady, playbackEnabled]);
+  }, [spotifyTrackId, musicStartedAt, musicPlaying, spotifyReady, playbackEnabled]);
 
   function startMicMeter(stream: MediaStream) {
     const audioContext = new AudioContext();

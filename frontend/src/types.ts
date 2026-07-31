@@ -21,6 +21,7 @@ export type MusicState = {
   songId: number | null;
   crossPlatformStatus: string | null;
   providers: string[];
+  startedAt: number;
 };
 
 export type SongResult = {

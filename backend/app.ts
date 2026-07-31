@@ -13,6 +13,7 @@ import {io, onlineUsers} from "./socket.ts";
 
 import swaggerUi from "swagger-ui-express";
 import spec from "./swagger.ts";
+import {getFreshAccessToken} from "./music/spotifyAuth.ts";
 dotenv.config();
 
 declare module 'express-session' {
@@ -395,9 +396,15 @@ app.get('/api/playlists', async function(req, res) {
     }
 
     if (user.platform === 'spotify') {
+      const accessToken = await getFreshAccessToken(user);
+
+      if (!accessToken) {
+        return res.status(401).json({ error: 'Spotify session expired, log in again' });
+      }
+
       const response = await axios.get('https://api.spotify.com/v1/me/playlists', {
         params: { limit: 50 },
-        headers: { Authorization: `Bearer ${user.access_token}` }
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
 
       const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name }));
@@ -500,6 +507,12 @@ app.get('/api/top_tracks', async function(req,res) {
       return res.json([]);
     }
 
+    const accessToken = await getFreshAccessToken(user);
+
+    if(!accessToken) {
+      return res.status(401).json({error: "Spotify session expired, log in again"});
+    }
+
     const response = await axios.get(
       "https://api.spotify.com/v1/me/top/tracks",
       {
@@ -508,7 +521,7 @@ app.get('/api/top_tracks', async function(req,res) {
         },
         headers:{
 
-          Authorization: `Bearer ${user.access_token}`
+          Authorization: `Bearer ${accessToken}`
 
         }
       }
@@ -544,7 +557,13 @@ app.get('/api/spotify-token', async function(req,res) {
     return res.status(400).json({error: "No Spotify account connected"});
   }
 
-  return res.json({accessToken: user.access_token});
+  const accessToken = await getFreshAccessToken(user);
+
+  if(!accessToken){
+    return res.status(401).json({error: "Spotify session expired, log in again"});
+  }
+
+  return res.json({accessToken});
 })
 
 /**
