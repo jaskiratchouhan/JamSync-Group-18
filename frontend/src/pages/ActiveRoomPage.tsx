@@ -107,6 +107,14 @@ type Props = {
   shouldCreateRoom: boolean;
 };
 
+type Playlist = {
+  id: string;
+  name: string;
+  count: number;
+};
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
+
 const socket: Socket = io(import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001", {withCredentials: true});
 
 let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
@@ -202,6 +210,12 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
   const [searchResults, setSearchResults] = useState<SongResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [openPlaylist, setOpenPlaylist] = useState<Playlist | null>(null);
+  const [playlistTracks, setPlaylistTracks] = useState<SongResult[]>([]);
+  const [playlistQuery, setPlaylistQuery] = useState("");
+  const [loadingTracks, setLoadingTracks] = useState(false);
+  const [playlistError, setPlaylistError] = useState("");
   const [spotifyReady, setSpotifyReady] = useState(false);
   const [spotifyError, setSpotifyError] = useState("");
   const [micError, setMicError] = useState(false);
@@ -246,6 +260,36 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
   const musicStartedAt = room?.music.startedAt ?? 0;
   const musicProvider = room?.music.provider ?? null;
   const canHearSong = musicProvider !== null && musicProvider === platform;
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/playlists`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setPlaylists(data.playlists ?? []))
+      .catch(() => {});
+  }, []);
+
+  async function showPlaylistSongs(playlist: Playlist) {
+    setOpenPlaylist(playlist);
+    setPlaylistQuery("");
+    setPlaylistTracks([]);
+    setPlaylistError("");
+    setLoadingTracks(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/playlists/${playlist.id}/tracks`, {
+        credentials: "include"
+      });
+
+      const data = await res.json();
+
+      if (Array.isArray(data)) setPlaylistTracks(data);
+      else setPlaylistError(data.error ?? "Could not load this playlist.");
+    } catch {
+      setPlaylistError("Could not load this playlist.");
+    }
+
+    setLoadingTracks(false);
+  }
 
   async function fetchSpotifyToken(): Promise<string | null> {
     try {
@@ -1003,10 +1047,6 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
 
               {roomUser.isHost && <p className="badge">Host</p>}
 
-              {roomUser.transcript && !cannotHearUser && (
-                <p className="subtitle">{roomUser.transcript}</p>
-              )}
-
               <div className="button-row">
                 {isCurrentUser && (
                   <button onClick={toggleSelfMute}>
@@ -1106,44 +1146,89 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
           )}
 
           {isHost && (
-            <div style={{ margin: "10px 0" }}>
-              <div style={{ display: "flex", gap: "6px" }}>
+            <div className="playlist-songs">
+              <div className="search-box">
                 <input
                   type="text"
                   placeholder="Search a song…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchSongs()}
-                  style={{ flex: 1, padding: "6px" }}
                 />
                 <button onClick={searchSongs} disabled={searching}>
                   {searching ? "Searching…" : "Search"}
                 </button>
               </div>
 
-              {searchError && (
-                <p style={{ color: "#b00", fontSize: "13px" }}>{searchError}</p>
-              )}
+              {searchError && <p className="meta">{searchError}</p>}
 
               {searchResults.length > 0 && (
-                <ul style={{ listStyle: "none", padding: 0, margin: "8px 0" }}>
+                <div className="list">
                   {searchResults.map((result) => (
-                    <li
+                    <div
                       key={result.providerTrackId}
+                      className="list-row"
                       onClick={() => selectSong(result)}
-                      style={{
-                        padding: "6px 8px",
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        marginBottom: "4px",
-                        cursor: "pointer"
-                      }}
                     >
-                      <strong>{result.title}</strong>
-                      <span style={{ color: "#666" }}> — {result.artist}</span>
-                    </li>
+                      <div>
+                        <p>{result.title}</p>
+                        <p className="meta">{result.artist}</p>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
+              )}
+
+              {playlists.length > 0 && (
+                <div className="playlist-row">
+                  {playlists.map((playlist) => (
+                    <button key={playlist.id} onClick={() => showPlaylistSongs(playlist)}>
+                      {playlist.name} ({playlist.count})
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {openPlaylist && (
+                <div className="playlist-songs">
+                  <div className="search-box">
+                    <input
+                      type="text"
+                      placeholder={`Search ${openPlaylist.name}`}
+                      value={playlistQuery}
+                      onChange={(e) => setPlaylistQuery(e.target.value)}
+                    />
+                    <button onClick={() => setOpenPlaylist(null)}>Close</button>
+                  </div>
+
+                  {loadingTracks && <p className="meta">Loading songs…</p>}
+
+                  {!loadingTracks && playlistTracks.length === 0 && (
+                    <p className="meta">{playlistError || "No songs in this playlist."}</p>
+                  )}
+
+                  <div className="list">
+                    {playlistTracks
+                      .filter((track) =>
+                        track.title.toLowerCase().includes(playlistQuery.toLowerCase())
+                      )
+                      .map((track) => (
+                        <div
+                          key={track.providerTrackId}
+                          className="list-row"
+                          onClick={() => {
+                            selectSong(track);
+                            setOpenPlaylist(null);
+                          }}
+                        >
+                          <div>
+                            <p>{track.title}</p>
+                            <p className="meta">{track.artist}</p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -1172,6 +1257,7 @@ export function ActiveRoomPage({ user, platform, roomId, shouldCreateRoom }: Pro
           {!isHost && <p>Only the host can control music.</p>}
         </div>
       </section>
+
     </main>
   );
 }

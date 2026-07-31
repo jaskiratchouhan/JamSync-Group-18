@@ -164,6 +164,10 @@ button:disabled {
   color: var(--muted);
 }
 
+.meta {
+  color: var(--muted);
+}
+
 .session-actions {
   display: flex;
   flex-direction: column;
@@ -550,4 +554,34 @@ button:disabled {
     padding: 16px;
     gap: 16px;
   }
+}
+
+.playlist-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.playlist-songs {
+  margin-top: 10px;
+  text-align: left;
+}
+
+.playlist-songs .list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.playlist-songs .list-row {
+  cursor: pointer;
+}
+
+.room-page input {
+  padding: 9px 12px;
+  background: #181818;
+  color: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
 }
