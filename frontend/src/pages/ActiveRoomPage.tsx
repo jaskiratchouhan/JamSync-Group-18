@@ -100,6 +100,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
   const musicPosition = room?.music.currentTime ?? 0;
   const spotifyTrackId =
     room?.music.provider === "spotify" ? room?.music.providerTrackId ?? null : null;
+  const musicStartedAt = room?.music.startedAt ?? 0;
 
   async function fetchSpotifyToken(): Promise<string | null> {
     try {
@@ -177,8 +178,10 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       return;
     }
 
-    if (loadedTrackRef.current !== spotifyTrackId) {
-      loadedTrackRef.current = spotifyTrackId;
+    const loadKey = `${spotifyTrackId}:${musicStartedAt}`;
+
+    if (loadedTrackRef.current !== loadKey) {
+      loadedTrackRef.current = loadKey;
       if (musicPlaying) {
         fetchSpotifyToken().then((token) => {
           if (!token) return;
@@ -201,7 +204,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
 
     if (musicPlaying) player.resume?.();
     else player.pause?.();
-  }, [spotifyTrackId, musicPlaying, spotifyReady, playbackEnabled]);
+  }, [spotifyTrackId, musicStartedAt, musicPlaying, spotifyReady, playbackEnabled]);
 
   function startMicMeter(stream: MediaStream) {
     const audioContext = new AudioContext();

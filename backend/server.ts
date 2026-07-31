@@ -47,6 +47,7 @@ type Room = {
     songId: number | null;
     crossPlatformStatus: string | null;
     providers: string[];
+    startedAt: number;
   };
 };
 
@@ -70,7 +71,8 @@ function getRoom(roomId: string): Room {
         providerTrackId: null,
         songId: null,
         crossPlatformStatus: null,
-        providers: []
+        providers: [],
+        startedAt: 0
       }
     };
   }
@@ -377,7 +379,8 @@ io.on("connection", (socket) => {
         providerTrackId: null,
         songId: null,
         crossPlatformStatus: null,
-        providers: []
+        providers: [],
+        startedAt: Date.now()
       };
     }
 
@@ -391,7 +394,8 @@ io.on("connection", (socket) => {
         providerTrackId: null,
         songId: null,
         crossPlatformStatus: null,
-        providers: []
+        providers: [],
+        startedAt: Date.now()
       };
     }
 
@@ -415,7 +419,8 @@ io.on("connection", (socket) => {
       providerTrackId: song.providerTrackId,
       songId: null,
       crossPlatformStatus: null,
-      providers: []
+      providers: [],
+      startedAt: Date.now()
     };
 
     await persistCurrentSong(room);
