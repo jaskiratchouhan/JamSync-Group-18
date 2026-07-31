@@ -398,6 +398,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       currentRoomIdRef.current = roomId;
       setCurrentRoomId(roomId);
       setRoom(room);
+      window.history.replaceState(null, "", `/session/${roomId}`);
     });
 
     socket.on("room:joined", ({ roomId, room }) => {

@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import toast from 'react-hot-toast';
 
-import { ActiveRoomPage } from "./pages/ActiveRoomPage";
 import { io} from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import { makeRandomUser } from "./user";
 import "./App.css";
 
 type Profile = {
@@ -48,71 +48,12 @@ type UserTopTrack = {
   artist: string;
   image: string | null;
 }
-function makeRandomUser() {
-  const id = crypto.randomUUID();
-
-  const colors = [
-    "#FF8A80",
-    "#FFB74D",
-    "#FFF176",
-    "#81C784",
-    "#4DD0E1",
-    "#64B5F6",
-    "#BA68C8"
-  ];
-
-  const adjectives = [
-  "Anonymous",
-  "Happy",
-  "Chill",
-  "Sneaky",
-  "Brave",
-  "Lucky",
-  "Cosmic",
-  "Jolly",
-  "Quiet",
-  "Wild"
-];
-
-const animals = [
-  "Giraffe",
-  "Panda",
-  "Tiger",
-  "Koala",
-  "Fox",
-  "Otter",
-  "Penguin",
-  "Falcon",
-  "Dolphin",
-  "Bear"
-];
-
-function makeRandomName() {
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-  const number = Math.floor(1000 + Math.random() * 9000);
-
-  return `${adjective} ${animal} ${number}`;
-}
-
-  return {
-    id,
-    name: makeRandomName(),
-    color: colors[Math.floor(Math.random() * colors.length)]
-  };
-}
-
 export default function HomePage() {
-  //const [user] = useState(makeRandomUser);
-  const params = new URLSearchParams(window.location.search);
-  const roomFromUrl = params.get("room");
   const navigate = useNavigate();
 
   const [user] = useState(makeRandomUser);
 
-  const [roomInput, setRoomInput] = useState(roomFromUrl ?? "");
-  const [currentActiveRoomID, setCurrentActiveRoomID] = useState<string | null>(roomFromUrl);
-  const [makingRoom, setMakingRoom] = useState(false);
+  const [roomInput, setRoomInput] = useState("");
 
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -157,7 +98,7 @@ export default function HomePage() {
 
 
     });
-}, []);
+}, [navigate]);
   useEffect(() => {
     socket.emit("sessions:getAll");
 
@@ -298,27 +239,10 @@ export default function HomePage() {
    
 
 
-  const roomInfo = currentActiveRoomID || makingRoom;
-
   if (!profile) {
     return <p className="loading">Loading...</p>;
   }
 
-  if (roomInfo) {
-
-
-  
-
- 
-
-    return (
-        <ActiveRoomPage
-            user={{...user, dbUserId: profile.id}}
-            roomId={currentActiveRoomID}
-            shouldCreateRoom={makingRoom}
-            />
-    );
-  }
 
   async function handleLogout(){
 
@@ -357,7 +281,7 @@ export default function HomePage() {
       <div key ={session.id}>
         <p> Session: {session.id}</p>
         <p>Users: {session.users.map((user) => user.name).join()}</p>
-        <button onClick={() => setCurrentActiveRoomID(session.id)}>Join</button>
+        <button onClick={() => navigate(`/session/${session.id}`)}>Join</button>
       </div>
     )
   }
@@ -623,7 +547,7 @@ export default function HomePage() {
 
  
 
-     <button onClick={() => setMakingRoom(true)}> Create Session</button>
+     <button onClick={() => navigate("/session/new")}> Create Session</button>
 
      
 {/* 
@@ -640,7 +564,7 @@ export default function HomePage() {
                 <button onClick={() => {
                     const trimmedRoomInput = roomInput.trim();
                     if (trimmedRoomInput.length !== 0) {
-                    setCurrentActiveRoomID(trimmedRoomInput)}}}>Join Session</button>
+                    navigate(`/session/${trimmedRoomInput}`)}}}>Join Session</button>
       </div>
       </div>
       </section>
