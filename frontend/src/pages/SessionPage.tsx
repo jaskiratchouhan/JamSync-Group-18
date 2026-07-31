@@ -8,7 +8,7 @@ const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
 export default function SessionPage() {
   const { roomCode } = useParams();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<{id: number; display_name: string} | null>(null);
+  const [profile, setProfile] = useState<{id: number; display_name: string; platform: string | null} | null>(null);
   const [user] = useState(makeRandomUser);
   const [shouldCreateRoom] = useState(roomCode === "new");
 
@@ -34,6 +34,7 @@ export default function SessionPage() {
   return (
     <ActiveRoomPage
       user={{ ...user, dbUserId: profile.id, name: profile.display_name }}
+      platform={profile.platform}
       roomId={shouldCreateRoom ? null : roomCode ?? null}
       shouldCreateRoom={shouldCreateRoom}
     />

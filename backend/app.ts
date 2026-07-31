@@ -13,7 +13,7 @@ import {io, onlineUsers} from "./socket.ts";
 
 import swaggerUi from "swagger-ui-express";
 import spec from "./swagger.ts";
-import {getFreshAccessToken} from "./music/spotifyAuth.ts";
+import {getFreshAccessToken} from "./music/providerAuth.ts";
 dotenv.config();
 
 declare module 'express-session' {
@@ -412,9 +412,15 @@ app.get('/api/playlists', async function(req, res) {
     }
 
     if (user.platform === 'youtube') {
+      const accessToken = await getFreshAccessToken(user);
+
+      if (!accessToken) {
+        return res.status(401).json({ error: 'YouTube session expired, log in again' });
+      }
+
       const response = await axios.get('https://www.googleapis.com/youtube/v3/playlists', {
         params: { part: 'snippet', mine: true, maxResults: 50 },
-        headers: { Authorization: `Bearer ${user.access_token}` }
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
 
       const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.snippet.title }));
