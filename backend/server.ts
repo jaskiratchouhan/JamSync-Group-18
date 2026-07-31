@@ -11,7 +11,7 @@ import app, {sessionSetUp} from "./app.ts";
 import {io, onlineUsers} from "./socket.ts";
 import {searchProvider} from "./music/providers.ts";
 import {looksLikeMatch} from "./music/normalize.ts";
-import {getFreshAccessToken} from "./music/providerAuth.ts";
+import {getFreshAccessToken} from "./music/spotifyAuth.ts";
 
 const server = http.createServer(app);
 io.attach(server);
