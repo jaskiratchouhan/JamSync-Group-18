@@ -407,7 +407,7 @@ app.get('/api/playlists', async function(req, res) {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
 
-      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name, count: item.tracks?.total ?? 0 }));
+      const playlists = response.data.items.map((item: any) => ({ id: item.id, name: item.name, count: item.items?.total ?? item.tracks?.total ?? 0 }));
       return res.json({ platform: 'spotify', playlists });
     }
 
@@ -480,6 +480,33 @@ app.get('/api/playlists/:playlistId/tracks', async function(req, res) {
 
     if (!accessToken) {
       return res.status(401).json({ error: 'Session expired, log in again' });
+    }
+
+    if (user.platform === 'spotify') {
+      const tracks = [];
+      let nextUrl = `https://api.spotify.com/v1/playlists/${req.params.playlistId}/items?limit=100`;
+
+      while (nextUrl) {
+        const response: any = await axios.get(nextUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        for (const entry of response.data.items ?? []) {
+          const track = entry.item ?? entry.track;
+          if (!track?.id) continue;
+
+          tracks.push({
+            provider: 'spotify',
+            providerTrackId: track.id,
+            title: track.name,
+            artist: track.artists?.[0]?.name ?? ''
+          });
+        }
+
+        nextUrl = response.data.next;
+      }
+
+      return res.json(tracks);
     }
 
     if (user.platform === 'youtube') {
