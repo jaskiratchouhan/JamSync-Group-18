@@ -165,6 +165,25 @@ describe("Joined Sessions", () => {
 
 })
 
+describe("Unit tests for generateRandomString", () => {
+    it("returns different values across seperate calls"){
+        const firstName = helpers.generateRandomString(16);
+        const secondName = helpers.generateRandomString(16);
+        assert.notEqual(firstName, secondName);
+    }
+    it("returns a string of the requested length", () =>{
+        const result = helpers.generateRandomString(16);
+        assert.equal(result.length, 16);
+    })
+})
+
+describe("Unit tests for helpers.makeRandomName", ()=> {
+    it("returns a string", () => {
+        const result = helpers.makeRandomName();
+        assert.equal(typeof result, "string");
+    })
+})
+
 after(async() => {
         for (const id of createdFriendRequests){
             await helpers.deleteFriendRequest(id);
