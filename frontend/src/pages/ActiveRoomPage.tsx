@@ -777,11 +777,13 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
       ? Math.max(0, youtubeStartTime)
       : 0;
 
+    const loadKey = `${youtubeVideoId}:${musicStartedAt}`;
+
     const videoChanged =
-      lastLoadedYouTubeVideoIdRef.current !== youtubeVideoId;
+      lastLoadedYouTubeVideoIdRef.current !== loadKey;
 
     if (videoChanged) {
-      lastLoadedYouTubeVideoIdRef.current = youtubeVideoId;
+      lastLoadedYouTubeVideoIdRef.current = loadKey;
 
       if (youtubeShouldPlay) {
         console.log("Loading video:", youtubeVideoId);
@@ -806,6 +808,7 @@ export function ActiveRoomPage({ user, roomId, shouldCreateRoom }: Props) {
     }
   }, [
     youtubeVideoId,
+    musicStartedAt,
     youtubeShouldPlay,
     youtubeStartTime,
     youtubePlayerReady
