@@ -8,6 +8,21 @@ jobs:
   backend-tests:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: jamsync
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d jamsync"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     defaults:
       run:
         working-directory: backend
@@ -26,12 +41,33 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
+      - name: Run database migrations
+        env:
+          PGUSER: postgres
+          PGPASSWORD: test-password
+          PGDATABASE: jamsync
+          PGHOST: localhost
+          PGPORT: 5432
+          DATABASE_LINK: postgresql://postgres:test-password@localhost:5432/jamsync
+        run: npx knex migrate:latest
+
       - name: Run backend tests
         env:
           FrontendURL: http://localhost:5173
-          SECRET: test-secret
-          CLIENT_ID: test-client-id
-          CLIENT_SECRET: test-client-secret
-          GOOGLE_CLIENT_ID: test-google-client-id
-          GOOGLE_CLIENT_SECRET: test-google-client-secret
+          FRONTEND_URL: http://localhost:5173
+
+          SECRET: ci-test-secret
+
+          CLIENT_ID: ci-test-client-id
+          CLIENT_SECRET: ci-test-client-secret
+
+          GOOGLE_CLIENT_ID: ci-test-google-client-id
+          GOOGLE_CLIENT_SECRET: ci-test-google-client-secret
+
+          PGUSER: postgres
+          PGPASSWORD: test-password
+          PGDATABASE: jamsync
+          PGHOST: localhost
+          PGPORT: 5432
+          DATABASE_LINK: postgresql://postgres:test-password@localhost:5432/jamsync
         run: npm test
