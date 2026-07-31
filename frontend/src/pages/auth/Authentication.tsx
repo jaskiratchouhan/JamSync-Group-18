@@ -19,7 +19,7 @@ export default function Authentication() {
                         <h2>Guest</h2>
                         
                         
-                            <img src = "https://cdn.creazilla.com/icons/3251108/person-icon-md.png" className={styles.guestImg}/>
+                            <img src = "https://cdn.creazilla.com/icons/3251108/person-icon-md.png"/>
                     <p>Jump in without connecting an account</p>
                     <a href={`${BACKEND_URL}/auth/guest`}>
                     
@@ -31,7 +31,7 @@ export default function Authentication() {
                     <div className = {styles.card}>
                         <h2>Connect to Spotify</h2>
                         
-                        <img src = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/960px-Spotify_icon.svg.png" className =  {styles.spotifyImg}/>
+                        <img src = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/960px-Spotify_icon.svg.png"/>
                         <p>Link your spotify account to get started!</p>
                         <a href={`${BACKEND_URL}/auth/spotify`}>
                             <button className = {styles.spotifyButton}>Connect to Spotify</button>
