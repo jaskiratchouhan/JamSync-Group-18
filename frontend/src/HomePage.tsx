@@ -40,6 +40,13 @@ type UserTopTrack = {
   artist: string;
   image: string | null;
 }
+
+type CurrentUsersSessions = {
+  id: number;
+  name: string;
+  room_code: string;
+  joined_at: string;
+}
 export default function HomePage() {
   const navigate = useNavigate();
 
@@ -48,6 +55,7 @@ export default function HomePage() {
 
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [currentUsersSessions, setCurrentUsersSessions] = useState<CurrentUsersSessions[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [platform, setPlatform] = useState<string | null>(null);
 
@@ -104,6 +112,20 @@ export default function HomePage() {
       socket.off("sessions:allSessions");
     }
   }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    socket.emit("user:sessions:get", { userId: profile.id });
+
+    socket.on("user:sessions", (sessions) => {
+      setCurrentUsersSessions(sessions);
+    });
+
+    return () => {
+      socket.off("user:sessions");
+    };
+  }, [profile]);
 
   useEffect(()=> {
     function handleStatusUpdate({userID, online}: {userID: number, online: boolean}){
@@ -268,6 +290,18 @@ export default function HomePage() {
     )
   }
 
+  const currentUserSessionsList = [];
+  for (const session of currentUsersSessions) {
+    currentUserSessionsList.push(
+      <div key={session.id} className="list-row">
+        <div>
+          <p>{session.name}</p>
+          <p className="meta">Code: {session.room_code}</p>
+        </div>
+      </div>
+    )
+  }
+
   async function grabSearchResults(){
     try {
       const result = new URLSearchParams({name: searchInput});
@@ -386,6 +420,13 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
+
+            <h3>Recent sessions</h3>
+            {currentUserSessionsList.length === 0 ? (
+              <p className="empty">You have not joined a session yet.</p>
+            ) : (
+              <div className="list">{currentUserSessionsList}</div>
+            )}
 
             <h3>Available now</h3>
             {sessionsList.length === 0 ? (
